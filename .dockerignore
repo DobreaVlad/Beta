@@ -1,0 +1,4 @@
+db_data/
+*.swp
+.git
+docker/nginx/certs

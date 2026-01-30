@@ -1,0 +1,11 @@
+/* Basic styles for the Perl website */
+body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f8f9fb; color: #222 }
+.site-header { background: #2c3e50; color: #fff; padding: 12px 20px }
+.site-header h1 { margin: 0; font-size: 20px }
+.site-header a { color: #fff; text-decoration: none }
+main { padding: 20px }
+footer { padding: 12px 20px; font-size: 12px; color: #666 }
+form label { display: block; margin-bottom: 8px }
+button { background: #3498db; color: #fff; border: none; padding: 8px 12px; cursor: pointer }
+button:hover { background: #2980b9 }
+input[type="text"], input[type="password"] { padding: 6px; width: 250px }
