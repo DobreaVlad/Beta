@@ -13,10 +13,24 @@ our @EXPORT_OK = qw(
 );
 
 # Database configuration
-my $DB_HOST = $ENV{DB_HOST} || 'db';
-my $DB_NAME = $ENV{DB_NAME} || 'myapp';
-my $DB_USER = $ENV{DB_USER} || 'root';
-my $DB_PASS = $ENV{DB_PASS} || '';
+my $MYSQL_URL = $ENV{MYSQL_URL};
+my ($DB_HOST, $DB_NAME, $DB_USER, $DB_PASS);
+
+if ($MYSQL_URL) {
+  # Parse mysql://user:pass@host:port/database
+  if ($MYSQL_URL =~ m|mysql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)|) {
+    $DB_USER = $1;
+    $DB_PASS = $2;
+    $DB_HOST = $3;
+    $DB_NAME = $5;
+  }
+} else {
+  # Fallback to individual env vars (for local dev)
+  $DB_HOST = $ENV{DB_HOST} || 'db';
+  $DB_NAME = $ENV{DB_NAME} || 'myapp';
+  $DB_USER = $ENV{DB_USER} || 'root';
+  $DB_PASS = $ENV{DB_PASS} || '';
+}
 
 # SMTP configuration
 my $SMTP_HOST = $ENV{SMTP_HOST} || 'localhost';
