@@ -1,0 +1,5 @@
+<%init>
+# This autohandler processes all requests
+# Mason will automatically route to the correct component
+</%init>
+<%$m->call_next%>

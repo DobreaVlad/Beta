@@ -1,8 +1,7 @@
-version: '3.8'
-
 services:
   db:
     image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: example
@@ -30,8 +29,12 @@ services:
       SMTP_HOST: mailhog
       SMTP_PORT: 1025
       SMTP_FROM: no-reply@local.test
+      APP_ENV: dev
+      MASON_STATIC: "0"
     volumes:
       - ./:/var/www/html:cached
+      - ./mason:/var/www/mason:cached
+      - ./docker/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
     ports:
       - "8080:80"
 

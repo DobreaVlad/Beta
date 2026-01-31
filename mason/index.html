@@ -1,0 +1,74 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session);
+use CGI qw(cookie);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PropertySite - Find Your Dream Property</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'home') %>
+
+<section class="hero">
+  <div class="container">
+    <h1>Find Your Dream Property</h1>
+    <p class="hero-subtitle">Search millions of properties and discover detailed information</p>
+    <div class="search-box">
+      <input type="text" placeholder="Enter address, city, or ZIP code" class="search-input">
+      <button class="btn-primary">Search Properties</button>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <h2>Why Choose PropertySite?</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🏠</div>
+        <h3>Comprehensive Database</h3>
+        <p>Access millions of property records with detailed information</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Market Analytics</h3>
+        <p>Get insights into property values and market trends</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Secure & Private</h3>
+        <p>Your data is protected with enterprise-grade security</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Fast & Accurate</h3>
+        <p>Real-time updates and accurate property information</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <h2>Ready to Get Started?</h2>
+    <p>Join thousands of users who trust PropertySite for their property research</p>
+% if (!$user) {
+    <a href="/register.html" class="btn-primary btn-large">Create Free Account</a>
+% } else {
+    <a href="/dashboard.html" class="btn-primary btn-large">Go to Dashboard</a>
+% }
+  </div>
+</section>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

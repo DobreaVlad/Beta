@@ -1,0 +1,70 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(dbh verify_password create_session);
+use CGI qw(:standard);
+
+my $q = CGI->new;
+my $error = '';
+
+if ($q->request_method eq 'POST') {
+    my $username = $q->param('username') || '';
+    my $password = $q->param('password') || '';
+    
+    if ($username eq '' || $password eq '') {
+        $error = 'Please provide both username and password';
+    } else {
+        my $dbh = dbh();
+        my $sth = $dbh->prepare('SELECT id, username, password_hash, salt FROM users WHERE username = ?');
+        $sth->execute($username);
+        my $user = $sth->fetchrow_hashref;
+        
+        if (!$user) {
+            $error = 'Invalid username or password';
+        } elsif (!verify_password($password, $user->{password_hash}, $user->{salt})) {
+            $error = 'Invalid username or password';
+        } else {
+            # Create session and redirect
+            my $session_id = create_session($user->{id});
+            my $cookie = $q->cookie(-name => 'SESSION', -value => $session_id, -path => '/', -expires => '+7d', -httponly => 1);
+            print $q->redirect(-uri => '/', -cookie => $cookie);
+            $m->abort();
+        }
+    }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => undef, current => 'login') %>
+
+<div class="auth-container">
+  <h1>Login to Your Account</h1>
+% if ($error) {
+  <div class="error"><% $error %></div>
+% }
+  <form method="post" action="/login.html">
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required>
+    </div>
+    <button type="submit">Login</button>
+  </form>
+  <div class="form-footer">
+    <p>Don't have an account? <a href="/register.html">Register here</a></p>
+    <p><a href="/reset_request.html">Forgot your password?</a></p>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

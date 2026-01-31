@@ -1,0 +1,15 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(delete_session);
+use CGI qw(:standard);
+
+my $q = CGI->new;
+my $cookie_value = $q->cookie('SESSION') || '';
+if ($cookie_value) {
+    delete_session($cookie_value);
+}
+
+my $cookie = $q->cookie(-name => 'SESSION', -value => '', -path => '/', -expires => '-1d');
+print $q->redirect(-uri => '/', -cookie => $cookie);
+$m->abort();
+</%init>

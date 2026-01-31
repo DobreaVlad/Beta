@@ -1,14 +1,10 @@
-# Basic Perl Website (CGI + MySQL)
+# Perl Website with Mason Templates
 
-This project is a very small demo of a website written in Perl using simple CGI scripts and MySQL as storage.
+A fresh setup for building a Perl website using Mason templating system, Apache with mod_perl, and MySQL.
 
-Files created:
-- `index.pl` — homepage (CGI)
-- `login.pl`, `register.pl`, `logout.pl` — auth scripts
-- `reset_request.pl`, `reset.pl` — password reset flow (email + token)
-- `lib/Config.pm` — DB and helper functions (edit DB credentials and SMTP settings)
-- `public/css/styles.css`, `public/js/app.js` — static assets
-- `sql/create_tables.sql` — tables for users, sessions, and password resets
+## Project Structure
+
+Ready for your custom implementation using Mason templates.
 
 
 SMTP & password reset

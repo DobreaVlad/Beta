@@ -1,0 +1,79 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(hash_password create_user);
+use CGI qw(:standard);
+
+my $q = CGI->new;
+my $error = '';
+my $success = '';
+
+if ($q->request_method eq 'POST') {
+    my $username = $q->param('username') || '';
+    my $email = $q->param('email') || '';
+    my $password = $q->param('password') || '';
+    my $password2 = $q->param('password2') || '';
+    
+    if ($username eq '' || $password eq '' || $email eq '') {
+        $error = 'Please provide username, email, and password';
+    } elsif ($password ne $password2) {
+        $error = 'Passwords do not match';
+    } elsif (length($password) < 6) {
+        $error = 'Password must be at least 6 characters';
+    } else {
+        my ($password_hash, $salt) = hash_password($password);
+        my $res = create_user($username, $password_hash, $salt, $email);
+        
+        if ($res->{ok}) {
+            $success = 'Registration successful! You can now login.';
+        } else {
+            $error = $res->{error} || 'Registration failed';
+        }
+    }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => undef, current => 'register') %>
+
+<div class="auth-container">
+  <h1>Create Your Account</h1>
+% if ($error) {
+  <div class="error"><% $error %></div>
+% }
+% if ($success) {
+  <div class="success"><% $success %></div>
+% }
+  <form method="post" action="/register.html">
+    <div class="form-group">
+      <label for="username">Username</label>
+      <input type="text" id="username" name="username" required>
+    </div>
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required minlength="6">
+    </div>
+    <div class="form-group">
+      <label for="password2">Confirm Password</label>
+      <input type="password" id="password2" name="password2" required minlength="6">
+    </div>
+    <button type="submit">Register</button>
+  </form>
+  <div class="form-footer">
+    <p>Already have an account? <a href="/login.html">Login here</a></p>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>
