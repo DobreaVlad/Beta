@@ -172,15 +172,6 @@ if ($has_filters || 1) {  # Show results by default
 <% $m->comp('/includes/header.html', user => $user, current => 'projects') %>
 
 <div class="projects-page">
-  <div class="projects-header-section">
-    <div class="container">
-      <div class="projects-header">
-        <h1>🏗️ Construction Projects</h1>
-        <p class="subtitle">Browse active construction projects and opportunities</p>
-      </div>
-    </div>
-  </div>
-
   <div class="projects-filter-section">
     <div class="container">
     <!-- Search and Filter Form -->
@@ -220,23 +211,23 @@ if ($has_filters || 1) {  # Show results by default
 
         <div class="filter-row">
           <div class="filter-group checkbox-group">
-            <label>
+            <label title="Civil">
               <input type="checkbox" name="type_civil" value="1"<% $type_civil ? ' checked' : '' %>>
-              <span class="checkbox-label">Civil</span>
+              <span class="checkbox-icon">🏢</span>
             </label>
           </div>
 
           <div class="filter-group checkbox-group">
-            <label>
+            <label title="Industrial">
               <input type="checkbox" name="type_industrial" value="1"<% $type_industrial ? ' checked' : '' %>>
-              <span class="checkbox-label">Industrial</span>
+              <span class="checkbox-icon">🏭</span>
             </label>
           </div>
 
           <div class="filter-group checkbox-group">
-            <label>
+            <label title="Infrastructure">
               <input type="checkbox" name="type_infrastructure" value="1"<% $type_infrastructure ? ' checked' : '' %>>
-              <span class="checkbox-label">Infrastructure</span>
+              <span class="checkbox-icon">🌉</span>
             </label>
           </div>
 

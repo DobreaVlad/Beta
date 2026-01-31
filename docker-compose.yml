@@ -10,6 +10,7 @@ services:
       MYSQL_PASSWORD: apppass
     volumes:
       - db_data:/var/lib/mysql
+      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/01-create_tables.sql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
