@@ -12,6 +12,31 @@ SMTP & password reset
 - Configure SMTP settings in `lib/Config.pm` (`$SMTP_HOST`, `$SMTP_PORT`, `$SMTP_USER`, `$SMTP_PASS`, `$SMTP_FROM`).
 - For local dev, leaving `$SMTP_HOST` empty or unset will show a dev reset link on the reset request page if sending fails.
 
+## Payment Integration (Stripe)
+
+The site includes full integration with **Stripe** for subscription billing. See [STRIPE_INTEGRATION.md](STRIPE_INTEGRATION.md) for detailed documentation.
+
+**Quick Setup:**
+1. Sign up for a Stripe account at https://stripe.com/
+2. Get your API keys from the Stripe dashboard
+3. Copy `.env.example` to `.env` and add your credentials:
+   ```bash
+   STRIPE_SECRET_KEY=sk_test_your_key
+   STRIPE_PUBLISHABLE_KEY=pk_test_your_key
+   STRIPE_WEBHOOK_SECRET=whsec_your_secret
+   APP_BASE_URL=http://localhost:8080
+   ```
+4. Run the updated SQL schema to create payment tables
+5. Restart the Docker containers
+
+**Payment Flow:**
+- Users select a plan from `/pricing/`
+- Checkout page creates subscription and payment records
+- User is redirected to Stripe's secure checkout page
+- After payment, user returns to confirmation page
+- Stripe sends payment status via webhook
+- Subscription is automatically activated on successful payment
+
 Setup
 1. Install Perl (Strawberry Perl on Windows is easiest) and these modules (CPAN):
    - DBI

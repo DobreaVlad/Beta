@@ -1,0 +1,113 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(update_payment_status verify_stripe_signature);
+use CGI;
+use JSON;
+
+my $q = CGI->new;
+
+# Log webhook for debugging
+my $log_file = '/var/www/html/logs/stripe_webhook.log';
+open(my $log_fh, '>>', $log_file) if -d '/var/www/html/logs';
+
+# Get the raw POST data
+my $raw_post_data = '';
+if ($ENV{REQUEST_METHOD} eq 'POST') {
+    read(STDIN, $raw_post_data, $ENV{CONTENT_LENGTH} || 0);
+}
+
+# Get Stripe signature header
+my $sig_header = $ENV{HTTP_STRIPE_SIGNATURE} || '';
+
+# Log the incoming data
+if ($log_fh) {
+    print $log_fh "[" . localtime() . "] Webhook received\n";
+    print $log_fh "Signature: $sig_header\n";
+}
+
+# Verify webhook signature
+my $signature_valid = verify_stripe_signature($raw_post_data, $sig_header);
+
+if ($log_fh) {
+    print $log_fh "Signature valid: " . ($signature_valid ? "YES" : "NO") . "\n";
+}
+
+# Parse the webhook data
+my $event;
+eval {
+    $event = decode_json($raw_post_data) if $raw_post_data;
+};
+
+if ($@) {
+    if ($log_fh) {
+        print $log_fh "Error parsing JSON: $@\n";
+        close($log_fh);
+    }
+    print "Content-Type: application/json\n\n";
+    print encode_json({ error => 'Invalid JSON' });
+    $m->abort();
+}
+
+# Process the event
+if ($event && $event->{type}) {
+    my $event_type = $event->{type};
+    
+    if ($log_fh) {
+        print $log_fh "Event type: $event_type\n";
+    }
+    
+    # Handle checkout.session.completed event
+    if ($event_type eq 'checkout.session.completed') {
+        my $session = $event->{data}{object};
+        my $session_id = $session->{id};
+        my $payment_status_stripe = $session->{payment_status};
+        
+        if ($log_fh) {
+            print $log_fh "Session ID: $session_id\n";
+            print $log_fh "Payment status: $payment_status_stripe\n";
+        }
+        
+        # Update payment status
+        my $our_status = 'pending';
+        if ($payment_status_stripe eq 'paid') {
+            $our_status = 'completed';
+        } elsif ($payment_status_stripe eq 'unpaid') {
+            $our_status = 'failed';
+        }
+        
+        eval {
+            update_payment_status($session_id, $our_status, $raw_post_data, undef);
+            
+            if ($log_fh) {
+                print $log_fh "Updated payment $session_id to status: $our_status\n";
+            }
+        };
+        
+        if ($@) {
+            if ($log_fh) {
+                print $log_fh "Error updating payment: $@\n";
+            }
+        }
+    }
+    # Handle payment_intent.succeeded event
+    elsif ($event_type eq 'payment_intent.succeeded') {
+        if ($log_fh) {
+            print $log_fh "Payment intent succeeded\n";
+        }
+    }
+    # Handle payment_intent.payment_failed event
+    elsif ($event_type eq 'payment_intent.payment_failed') {
+        if ($log_fh) {
+            print $log_fh "Payment intent failed\n";
+        }
+    }
+}
+
+close($log_fh) if $log_fh;
+
+# Return success response to Stripe
+print "Content-Type: application/json\n\n";
+print encode_json({ received => JSON::true });
+
+$m->abort();
+</%init>

@@ -10,6 +10,8 @@ our @EXPORT_OK = qw(
     dbh hash_password verify_password create_session get_user_by_session
     delete_session create_user send_email create_password_reset
     get_user_by_reset_token consume_password_reset update_user_password
+    create_subscription create_payment update_payment_status get_user_subscription
+    create_stripe_checkout_session verify_stripe_signature
 );
 
 # Database configuration
@@ -36,6 +38,11 @@ if ($MYSQL_URL) {
 my $SMTP_HOST = $ENV{SMTP_HOST} || 'localhost';
 my $SMTP_PORT = $ENV{SMTP_PORT} || 1025;
 my $SMTP_FROM = $ENV{SMTP_FROM} || 'noreply@example.com';
+
+# Stripe configuration
+my $STRIPE_SECRET_KEY = $ENV{STRIPE_SECRET_KEY} || '';
+my $STRIPE_PUBLISHABLE_KEY = $ENV{STRIPE_PUBLISHABLE_KEY} || '';
+my $STRIPE_WEBHOOK_SECRET = $ENV{STRIPE_WEBHOOK_SECRET} || '';
 
 sub dbh {
     return DBI->connect(
@@ -143,6 +150,132 @@ sub update_user_password {
     my ($user_id, $password_hash, $salt) = @_;
     my $dbh = dbh();
     $dbh->do('UPDATE users SET password_hash = ?, salt = ? WHERE id = ?', undef, $password_hash, $salt, $user_id);
+}
+
+sub create_subscription {
+    my ($user_id, $plan_type, $price, $currency) = @_;
+    $currency ||= 'RON';
+    my $dbh = dbh();
+    my $sth = $dbh->prepare('INSERT INTO subscriptions (user_id, plan_type, price, currency, status) VALUES (?, ?, ?, ?, ?)');
+    $sth->execute($user_id, $plan_type, $price, $currency, 'pending');
+    return $dbh->last_insert_id(undef, undef, 'subscriptions', 'id');
+}
+
+sub create_payment {
+    my ($user_id, $subscription_id, $amount, $currency, $stripe_session_id) = @_;
+    $currency ||= 'usd';
+    my $dbh = dbh();
+    my $sth = $dbh->prepare('INSERT INTO payments (user_id, subscription_id, amount, currency, stripe_session_id, status) VALUES (?, ?, ?, ?, ?, ?)');
+    $sth->execute($user_id, $subscription_id, $amount, $currency, $stripe_session_id, 'pending');
+    return $dbh->last_insert_id(undef, undef, 'payments', 'id');
+}
+
+sub update_payment_status {
+    my ($stripe_session_id, $status, $payment_data, $error_message) = @_;
+    my $dbh = dbh();
+    
+    # Update payment
+    $dbh->do('UPDATE payments SET status = ?, payment_data = ?, error_message = ?, updated_at = NOW() WHERE stripe_session_id = ?',
+        undef, $status, $payment_data, $error_message, $stripe_session_id);
+    
+    # If payment completed, activate subscription
+    if ($status eq 'completed') {
+        my $sth = $dbh->prepare('SELECT subscription_id FROM payments WHERE stripe_session_id = ?');
+        $sth->execute($stripe_session_id);
+        my $row = $sth->fetchrow_hashref;
+        
+        if ($row && $row->{subscription_id}) {
+            $dbh->do('UPDATE subscriptions SET status = ?, start_date = NOW(), end_date = DATE_ADD(NOW(), INTERVAL 1 MONTH) WHERE id = ?',
+                undef, 'active', $row->{subscription_id});
+        }
+    }
+    
+    return 1;
+}
+
+sub get_user_subscription {
+    my ($user_id) = @_;
+    my $dbh = dbh();
+    my $sth = $dbh->prepare('SELECT * FROM subscriptions WHERE user_id = ? AND status = ? AND end_date > NOW() ORDER BY end_date DESC LIMIT 1');
+    $sth->execute($user_id, 'active');
+    return $sth->fetchrow_hashref;
+}
+
+sub create_stripe_checkout_session {
+    my ($user_id, $subscription_id, $plan_type, $amount, $currency) = @_;
+    $currency ||= 'usd';
+    
+    use LWP::UserAgent;
+    use JSON;
+    use HTTP::Request;
+    
+    # Read Stripe key from environment
+    my $stripe_key = $ENV{STRIPE_SECRET_KEY} || $STRIPE_SECRET_KEY;
+    
+    # Return error if no API key
+    return (0, undef, 'Stripe API key not configured') unless $stripe_key;
+    
+    my $base_url = $ENV{APP_BASE_URL} || 'http://localhost:8080';
+    
+    my $ua = LWP::UserAgent->new(timeout => 30);
+    my $request = HTTP::Request->new(POST => 'https://api.stripe.com/v1/checkout/sessions');
+    $request->authorization_basic($stripe_key, '');
+    $request->header('Content-Type' => 'application/x-www-form-urlencoded');
+    
+    # Convert amount to cents for Stripe
+    my $amount_cents = int($amount * 100);
+    
+    my $content = "mode=payment";
+    $content .= "&success_url=$base_url/payment/confirm.html?session_id={CHECKOUT_SESSION_ID}";
+    $content .= "&cancel_url=$base_url/payment/checkout.html?plan=$plan_type";
+    $content .= "&line_items[0][price_data][currency]=$currency";
+    $content .= "&line_items[0][price_data][product_data][name]=PropertySite " . ucfirst($plan_type) . " Plan";
+    $content .= "&line_items[0][price_data][unit_amount]=$amount_cents";
+    $content .= "&line_items[0][quantity]=1";
+    $content .= "&client_reference_id=$user_id";
+    $content .= "&metadata[user_id]=$user_id";
+    $content .= "&metadata[subscription_id]=$subscription_id";
+    $content .= "&metadata[plan_type]=$plan_type";
+    
+    $request->content($content);
+    
+    my $response = $ua->request($request);
+    
+    if ($response->is_success) {
+        my $result = decode_json($response->content);
+        return (1, $result->{id}, $result->{url});
+    } else {
+        return (0, undef, $response->status_line);
+    }
+}
+
+sub verify_stripe_signature {
+    my ($payload, $sig_header) = @_;
+    use Digest::SHA qw(hmac_sha256_hex);
+    
+    return 0 unless $sig_header && $STRIPE_WEBHOOK_SECRET;
+    
+    # Parse signature header
+    my %sig_parts;
+    foreach my $part (split /,/, $sig_header) {
+        my ($key, $value) = split /=/, $part, 2;
+        $sig_parts{$key} = $value;
+    }
+    
+    my $timestamp = $sig_parts{t};
+    my $signature = $sig_parts{v1};
+    
+    return 0 unless $timestamp && $signature;
+    
+    # Verify timestamp is recent (within 5 minutes)
+    my $current_time = time();
+    return 0 if abs($current_time - $timestamp) > 300;
+    
+    # Compute expected signature
+    my $signed_payload = "$timestamp.$payload";
+    my $expected = hmac_sha256_hex($signed_payload, $STRIPE_WEBHOOK_SECRET);
+    
+    return $signature eq $expected;
 }
 
 1;

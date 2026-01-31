@@ -9,7 +9,8 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # Install Perl modules (may take time)
-RUN cpanm --notest DBI DBD::mysql Authen::Passphrase::BlowfishCrypt Net::SMTP CGI HTML::Mason HTML::Mason::ApacheHandler || true
+RUN cpanm --notest DBI DBD::mysql Authen::Passphrase::BlowfishCrypt Net::SMTP CGI HTML::Mason HTML::Mason::ApacheHandler \
+    LWP::UserAgent LWP::Protocol::https JSON Digest::HMAC_SHA1 HTTP::Request || true
 
 # Apache vhost
 COPY docker/apache/000-default.conf /etc/apache2/sites-available/000-default.conf
@@ -20,7 +21,8 @@ COPY mason /var/www/mason/
 RUN chown -R www-data:www-data /var/www/html /var/www/mason \
     && find /var/www/html -name "*.pl" -exec chmod +x {} \; \
     && mkdir -p /tmp/mason_data \
-    && chown www-data:www-data /tmp/mason_data
+    && mkdir -p /var/www/html/logs \
+    && chown www-data:www-data /tmp/mason_data /var/www/html/logs
 
 EXPOSE 80
 CMD ["apachectl", "-D", "FOREGROUND"]

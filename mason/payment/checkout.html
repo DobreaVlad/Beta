@@ -1,0 +1,179 @@
+<%args>
+$plan => 'basic'
+</%args>
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session create_subscription create_payment);
+use CGI qw(cookie);
+use JSON;
+use Digest::SHA qw(sha256_hex);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+# Redirect to login if not authenticated
+if (!$user) {
+    $m->redirect('/auth/login.html?redirect=/payment/checkout.html?plan=' . $plan);
+}
+
+# Plan pricing (in USD)
+my %plans = (
+    basic => { name => 'Basic', price => 29, currency => 'usd' },
+    professional => { name => 'Professional', price => 99, currency => 'usd' },
+    enterprise => { name => 'Enterprise', price => 299, currency => 'usd' }
+);
+
+my $plan_info = $plans{$plan} || $plans{basic};
+my $error = '';
+my $redirect_url = '';
+
+# Handle form submission
+if ($q->request_method() eq 'POST') {
+    eval {
+        # Create subscription
+        my $subscription_id = create_subscription(
+            $user->{id},
+            $plan,
+            $plan_info->{price},
+            $plan_info->{currency}
+        );
+        
+        # Set redirect URL
+        $redirect_url = '/payment/process.html?subscription_id=' . $subscription_id . '&plan=' . $plan;
+    };
+    if ($@) {
+        $error = "Error creating payment: $@";
+    } elsif ($redirect_url) {
+        # Redirect outside eval block
+        $m->redirect($redirect_url);
+    }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <style>
+    .checkout-container {
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .checkout-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .plan-summary {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 6px;
+      margin-bottom: 30px;
+    }
+    .plan-summary h3 {
+      margin: 0 0 10px 0;
+      color: #333;
+    }
+    .plan-price {
+      font-size: 2.5em;
+      font-weight: bold;
+      color: #2563eb;
+      margin: 10px 0;
+    }
+    .plan-features {
+      list-style: none;
+      padding: 0;
+      margin: 20px 0;
+    }
+    .plan-features li {
+      padding: 8px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .payment-info {
+      margin: 30px 0;
+    }
+    .payment-info p {
+      color: #666;
+      line-height: 1.6;
+    }
+    .error-message {
+      background: #fee;
+      color: #c33;
+      padding: 15px;
+      border-radius: 6px;
+      margin-bottom: 20px;
+    }
+    .btn-checkout {
+      width: 100%;
+      padding: 15px;
+      font-size: 1.1em;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    .btn-checkout:hover {
+      background: #1d4ed8;
+    }
+    .secure-badge {
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => '') %>
+
+<div class="checkout-container">
+  <div class="checkout-header">
+    <h1>Complete Your Purchase</h1>
+    <p>You're subscribing to the <strong><% $plan_info->{name} %></strong> plan</p>
+  </div>
+
+% if ($error) {
+  <div class="error-message"><% $error %></div>
+% }
+
+  <div class="plan-summary">
+    <h3><% $plan_info->{name} %> Plan</h3>
+    <div class="plan-price"><% $plan_info->{price} %> <% $plan_info->{currency} %></div>
+    <p>Billed monthly</p>
+  </div>
+
+  <div class="payment-info">
+    <h3>Payment Method</h3>
+    <p>You will be redirected to Stripe's secure checkout page to complete your payment.</p>
+    <p>Stripe supports:</p>
+    <ul>
+      <li>Credit & Debit Cards (Visa, Mastercard, Amex)</li>
+      <li>Apple Pay & Google Pay</li>
+      <li>Bank transfers & more</li>
+    </ul>
+  </div>
+
+  <form method="POST" action="/payment/checkout.html">
+    <input type="hidden" name="plan" value="<% $plan %>">
+    <button type="submit" class="btn-checkout">
+      Proceed to Payment
+    </button>
+  </form>
+
+  <div class="secure-badge">
+    🔒 Secure payment powered by Stripe
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

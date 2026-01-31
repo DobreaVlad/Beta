@@ -1,0 +1,150 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+# Get session_id from query parameters (Stripe returns this)
+my $session_id = $q->param('session_id') || '';
+my $payment_status = $q->param('status') || '';
+
+my $message = '';
+my $success = 0;
+
+if ($session_id) {
+    my $dbh = AppLib::dbh();
+    my $sth = $dbh->prepare('
+        SELECT p.*, s.plan_type, s.status as sub_status
+        FROM payments p 
+        LEFT JOIN subscriptions s ON p.subscription_id = s.id 
+        WHERE p.stripe_session_id = ?
+    ');
+    $sth->execute($session_id);
+    my $payment = $sth->fetchrow_hashref;
+    
+    if ($payment) {
+        if ($payment->{status} eq 'completed') {
+            $success = 1;
+            $message = 'Your payment has been successfully processed!';
+        } elsif ($payment->{status} eq 'pending') {
+            $message = 'Your payment is being processed. We will notify you once it is confirmed.';
+        } else {
+            $message = 'Payment failed. Please try again or contact support.';
+        }
+    } else {
+        $message = 'Payment not found.';
+    }
+} else {
+    $message = 'Invalid payment confirmation.';
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Confirmation - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <style>
+    .confirmation-container {
+      max-width: 700px;
+      margin: 80px auto;
+      padding: 40px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .confirmation-icon {
+      font-size: 5em;
+      margin-bottom: 20px;
+    }
+    .success-icon {
+      color: #22c55e;
+    }
+    .pending-icon {
+      color: #f59e0b;
+    }
+    .error-icon {
+      color: #ef4444;
+    }
+    .confirmation-message {
+      font-size: 1.2em;
+      margin: 20px 0;
+      color: #333;
+    }
+    .order-id {
+      background: #f3f4f6;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+      font-family: monospace;
+      color: #666;
+    }
+    .action-buttons {
+      margin-top: 30px;
+    }
+    .btn-action {
+      display: inline-block;
+      padding: 12px 30px;
+      margin: 10px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    .btn-action:hover {
+      background: #1d4ed8;
+    }
+    .btn-secondary {
+      background: #6b7280;
+    }
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => '') %>
+
+<div class="confirmation-container">
+% if ($success) {
+  <div class="confirmation-icon success-icon">✓</div>
+  <h1>Payment Successful!</h1>
+% } elsif ($payment_status eq 'pending' || $message =~ /processing/) {
+  <div class="confirmation-icon pending-icon">⏳</div>
+  <h1>Payment Processing</h1>
+% } else {
+  <div class="confirmation-icon error-icon">✗</div>
+  <h1>Payment Failed</h1>
+% }
+
+  <p class="confirmation-message"><% $message %></p>
+  
+% if ($session_id) {
+  <div class=\"order-id\">
+    Session ID: <strong><% $session_id %></strong>
+  </div>
+% }
+
+% if ($success) {
+  <p>Your subscription is now active. You can start using all the features of your plan.</p>
+  <div class="action-buttons">
+    <a href="/profile/" class="btn-action">View My Profile</a>
+    <a href="/search/" class="btn-action btn-secondary">Start Searching</a>
+  </div>
+% } else {
+  <div class="action-buttons">
+    <a href="/pricing/" class="btn-action">Try Again</a>
+    <a href="/contact/" class="btn-action btn-secondary">Contact Support</a>
+  </div>
+% }
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

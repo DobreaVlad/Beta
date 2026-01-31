@@ -1,0 +1,91 @@
+<%args>
+$subscription_id
+$plan
+</%args>
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh create_stripe_checkout_session create_payment);
+use CGI qw(cookie);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+# Redirect if not authenticated
+if (!$user) {
+    $m->redirect('/auth/login.html');
+}
+
+# Get subscription details
+my $dbh = AppLib::dbh();
+my $sth = $dbh->prepare('SELECT * FROM subscriptions WHERE id = ? AND user_id = ?');
+$sth->execute($subscription_id, $user->{id});
+my $subscription = $sth->fetchrow_hashref;
+
+unless ($subscription) {
+    $m->redirect('/pricing/');
+}
+
+# Create Stripe Checkout Session
+my ($success, $session_id, $checkout_url) = create_stripe_checkout_session(
+    $user->{id},
+    $subscription_id,
+    $subscription->{plan_type},
+    $subscription->{price},
+    $subscription->{currency}
+);
+
+if ($success) {
+    # Create payment record
+    create_payment(
+        $user->{id},
+        $subscription_id,
+        $subscription->{price},
+        $subscription->{currency},
+        $session_id
+    );
+    
+    # Redirect to Stripe Checkout
+    $m->redirect($checkout_url);
+}
+
+# If we got here, there was an error
+my $error_message = $checkout_url; # Contains error message if failed
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Processing - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <style>
+    .error-container {
+      max-width: 600px;
+      margin: 100px auto;
+      padding: 30px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .error-icon {
+      font-size: 4em;
+      margin-bottom: 20px;
+    }
+    .error-message {
+      color: #c33;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+<div class="error-container">
+  <div class="error-icon">⚠️</div>
+  <h1>Payment Processing Error</h1>
+  <p class="error-message"><% $error_message || 'Unable to process payment' %></p>
+  <p>Please try again or contact support if the problem persists.</p>
+  <a href="/pricing/" class="btn-primary">Return to Pricing</a>
+</div>
+</body>
+</html>

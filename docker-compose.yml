@@ -32,6 +32,11 @@ services:
       SMTP_FROM: no-reply@local.test
       APP_ENV: dev
       MASON_STATIC: "0"
+      # Stripe Payment Configuration
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
     volumes:
       - ./:/var/www/html:cached
       - ./mason:/var/www/mason:cached

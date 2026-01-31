@@ -1,6 +1,6 @@
 <%init>
 use lib '/var/www/html/lib';
-use AppLib qw(get_user_by_session);
+use AppLib qw(get_user_by_session get_user_subscription);
 use CGI qw(cookie);
 
 my $q = CGI->new;
@@ -11,6 +11,9 @@ if (!$user) {
   print $q->redirect('/auth/login.html');
     $m->abort();
 }
+
+# Get user's subscription
+my $subscription = get_user_subscription($user->{id});
 </%init>
 <!DOCTYPE html>
 <html lang="en">
@@ -19,12 +22,104 @@ if (!$user) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile - PropertySite</title>
   <link rel="stylesheet" href="/public/css/styles.css">
+  <style>
+    .subscription-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      border-radius: 12px;
+      margin: 30px 0;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .subscription-card h2 {
+      margin: 0 0 10px 0;
+      font-size: 1.5em;
+    }
+    .subscription-status {
+      display: inline-block;
+      padding: 5px 15px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 20px;
+      font-size: 0.9em;
+      margin-left: 10px;
+    }
+    .subscription-details {
+      margin-top: 20px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .subscription-detail {
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 8px;
+    }
+    .subscription-detail label {
+      display: block;
+      font-size: 0.85em;
+      opacity: 0.9;
+      margin-bottom: 5px;
+    }
+    .subscription-detail strong {
+      font-size: 1.2em;
+    }
+    .no-subscription {
+      background: #f3f4f6;
+      padding: 30px;
+      border-radius: 12px;
+      margin: 30px 0;
+      text-align: center;
+    }
+    .upgrade-btn {
+      display: inline-block;
+      padding: 12px 30px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    .upgrade-btn:hover {
+      background: #1d4ed8;
+    }
+  </style>
 </head>
 <body>
 <% $m->comp('/includes/header.html', user => $user, current => 'profile') %>
 
 <div class="auth-container">
   <h1>Your Profile</h1>
+  
+% if ($subscription && $subscription->{status} eq 'active') {
+  <div class="subscription-card">
+    <h2>
+      <% ucfirst($subscription->{plan_type}) %> Plan
+      <span class="subscription-status">Active</span>
+    </h2>
+    <div class="subscription-details">
+      <div class="subscription-detail">
+        <label>Monthly Price</label>
+        <strong><% sprintf("%.2f", $subscription->{price}) %> <% $subscription->{currency} %></strong>
+      </div>
+      <div class="subscription-detail">
+        <label>Started</label>
+        <strong><% $subscription->{start_date} %></strong>
+      </div>
+      <div class="subscription-detail">
+        <label>Renews On</label>
+        <strong><% $subscription->{end_date} %></strong>
+      </div>
+    </div>
+  </div>
+% } else {
+  <div class="no-subscription">
+    <h2>No Active Subscription</h2>
+    <p>Subscribe to a plan to access premium features</p>
+    <a href="/pricing/" class="upgrade-btn">View Plans</a>
+  </div>
+% }
+  
   <div class="form-group">
     <label>Name</label>
     <input type="text" value="<% $user->{name} %>" readonly>
