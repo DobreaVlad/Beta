@@ -1,0 +1,483 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie param);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+# Filter parameters
+my $status = $q->param('status') || '';
+my $size = $q->param('size') || '';
+my $zone = $q->param('zone') || '';
+my $county = $q->param('county') || '';
+my $type_civil = $q->param('type_civil') || '';
+my $type_industrial = $q->param('type_industrial') || '';
+my $type_infrastructure = $q->param('type_infrastructure') || '';
+my $date_from = $q->param('date_from') || '';
+my $search_term = $q->param('search') || '';
+
+my @projects = ();
+my $has_filters = $status || $size || $zone || $county || $type_civil || $type_industrial || $type_infrastructure || $date_from || $search_term;
+
+# Mock data - replace with actual database query
+if ($has_filters || 1) {  # Show results by default
+    # This would be a database query in production
+    @projects = (
+        {
+            id => 144758,
+            title => 'Water Network Rehabilitation',
+            county => 'TIMIS',
+            status => 'Design Phase',
+            value => '6,925,317.68 RON excl. VAT',
+            requests => 'connection materials, pipes, conduits, concrete prefabs, crushed stone',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Large'
+        },
+        {
+            id => 144759,
+            title => 'Residential Building',
+            county => 'ALBA',
+            status => 'Construction',
+            value => 'G+1F',
+            requests => 'concrete, rebar, bricks, PVC windows, thermal insulation, screed, interior+exterior finishes',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Medium'
+        },
+        {
+            id => 144760,
+            title => 'XCity Towers Residential Complex',
+            county => 'TIMIS',
+            status => 'Construction',
+            value => 'B+G+10F / B+G+15F',
+            requests => 'concrete, rebar, bricks, finishes, heating systems, plumbing, electrical installations',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Large'
+        },
+        {
+            id => 144761,
+            title => 'Sisesti Residential Complex',
+            county => 'ILFOV',
+            status => 'Design Phase',
+            value => '480,000 sqm',
+            requests => 'general contracting + construction materials',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Large'
+        },
+        {
+            id => 144762,
+            title => 'Timpuri Noi Offices Complex',
+            county => 'BUCHAREST',
+            status => 'Construction',
+            value => '50,000 sqm / B+G+13F',
+            requests => 'rebar, bricks, windows, interior and exterior finishes',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Large'
+        },
+        {
+            id => 144763,
+            title => 'Residential Home',
+            county => 'SUCEAVA',
+            status => 'Design Phase',
+            value => 'G+1F',
+            requests => 'execution, concrete, rebar, bricks, thermal systems, PVC windows, finishes, screed',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Small'
+        },
+        {
+            id => 144764,
+            title => 'Dental Clinic',
+            county => 'DAMBOVITA',
+            status => 'Design Phase',
+            value => 'Medium',
+            requests => 'concrete, steel, bricks, windows, ventilated facade, waterproofing',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Medium'
+        },
+        {
+            id => 144765,
+            title => 'Construction of Recovery Center',
+            county => 'VALCEA',
+            status => 'Design Phase',
+            value => '2,529,804.53 RON excl. VAT',
+            requests => 'concrete, rebar, bricks, thermal systems, PVC windows, finishes, screed, washable paints, plaster',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Medium'
+        },
+        {
+            id => 144766,
+            title => 'Driving School',
+            county => 'TELEORMAN',
+            status => 'Renovation',
+            value => 'G+1F',
+            requests => 'interior finishes, flooring, lighting fixtures, paints',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Small'
+        },
+        {
+            id => 144767,
+            title => 'Residential Building',
+            county => 'ILFOV',
+            status => 'Construction',
+            value => '2B+G+3F',
+            requests => 'execution, bricks, windows, waterproofing, finishes',
+            beneficiary => '******',
+            designer => '******',
+            contractor => '******',
+            date => '1/30/2026',
+            size => 'Medium'
+        }
+    );
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Construction Projects List - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <link href='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css' rel='stylesheet' />
+  <script src='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js'></script>
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'projects') %>
+
+<div class="projects-page">
+  <div class="projects-header-section">
+    <div class="container">
+      <div class="projects-header">
+        <h1>🏗️ Construction Projects</h1>
+        <p class="subtitle">Browse active construction projects and opportunities</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="projects-filter-section">
+    <div class="container">
+    <!-- Search and Filter Form -->
+    <form method="get" action="/projects/" class="projects-filter-form">
+      <div class="filter-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label for="status">Status</label>
+            <select name="status" id="status">
+              <option value="">All Statuses</option>
+              <option value="design"<% $status eq 'design' ? ' selected' : '' %>>Design Phase</option>
+              <option value="construction"<% $status eq 'construction' ? ' selected' : '' %>>Construction</option>
+              <option value="renovation"<% $status eq 'renovation' ? ' selected' : '' %>>Renovation</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="size">Size</label>
+            <select name="size" id="size">
+              <option value="">All Sizes</option>
+              <option value="small"<% $size eq 'small' ? ' selected' : '' %>>Small</option>
+              <option value="medium"<% $size eq 'medium' ? ' selected' : '' %>>Medium</option>
+              <option value="large"<% $size eq 'large' ? ' selected' : '' %>>Large</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label for="zone">Zone</label>
+            <input type="text" name="zone" id="zone" value="<% $zone %>" placeholder="Enter zone">
+          </div>
+
+          <div class="filter-group">
+            <label for="county">County</label>
+            <input type="text" name="county" id="county" value="<% $county %>" placeholder="Enter county">
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <div class="filter-group checkbox-group">
+            <label>
+              <input type="checkbox" name="type_civil" value="1"<% $type_civil ? ' checked' : '' %>>
+              <span class="checkbox-label">Civil</span>
+            </label>
+          </div>
+
+          <div class="filter-group checkbox-group">
+            <label>
+              <input type="checkbox" name="type_industrial" value="1"<% $type_industrial ? ' checked' : '' %>>
+              <span class="checkbox-label">Industrial</span>
+            </label>
+          </div>
+
+          <div class="filter-group checkbox-group">
+            <label>
+              <input type="checkbox" name="type_infrastructure" value="1"<% $type_infrastructure ? ' checked' : '' %>>
+              <span class="checkbox-label">Infrastructure</span>
+            </label>
+          </div>
+
+          <div class="filter-group">
+            <label for="date_from">Date From</label>
+            <input type="date" name="date_from" id="date_from" value="<% $date_from %>">
+          </div>
+        </div>
+
+        <div class="filter-row search-row">
+          <div class="filter-group search-group">
+            <input type="text" name="search" id="search" value="<% $search_term %>" placeholder="Search projects by keywords...">
+          </div>
+          <div class="filter-actions">
+            <button type="submit" class="btn-primary">Search</button>
+            <a href="/projects/" class="btn-secondary">Reset</a>
+          </div>
+        </div>
+      </div>
+    </form>
+    </div>
+  </div>
+
+  <!-- Split Layout: Results Left, Map Right -->
+  <div class="projects-split-layout">
+    <div class="projects-results-column">
+% if (@projects) {
+      <p class="results-count">
+        Showing <strong><% scalar(@projects) %></strong> projects
+      </p>
+
+      <div class="projects-grid">
+% foreach my $project (@projects) {
+        <div class="project-card">
+          <div class="project-header">
+            <h3 class="project-title"><% $project->{title} %></h3>
+            <span class="project-id">ID: <% $project->{id} %></span>
+          </div>
+          
+          <div class="project-info">
+            <div class="info-row">
+              <span class="info-label">County:</span>
+              <span class="info-value"><% $project->{county} %></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Status:</span>
+              <span class="info-value status-badge"><% $project->{status} %></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Size/Value:</span>
+              <span class="info-value"><% $project->{value} %></span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Size:</span>
+              <span class="info-value size-badge"><% $project->{size} %></span>
+            </div>
+          </div>
+
+          <div class="project-requests">
+            <span class="info-label">Requirements:</span>
+            <p><% $project->{requests} %></p>
+          </div>
+
+          <div class="project-details">
+            <div class="detail-item">
+              <strong>Beneficiary:</strong> <% $project->{beneficiary} %>
+            </div>
+            <div class="detail-item">
+              <strong>Designer:</strong> <% $project->{designer} %>
+            </div>
+            <div class="detail-item">
+              <strong>Contractor:</strong> <% $project->{contractor} %>
+            </div>
+          </div>
+
+          <div class="project-footer">
+            <span class="project-date">📅 <% $project->{date} %></span>
+            <button class="btn-view-details" onclick="openProjectModal('<% $project->{id} %>', '<% $project->{title} %>', '<% $project->{county} %>', '<% $project->{status} %>', '<% $project->{value} %>', '<% $project->{size} %>', `<% $project->{requests} %>`, '<% $project->{beneficiary} %>', '<% $project->{designer} %>', '<% $project->{contractor} %>', '<% $project->{date} %>')">View Details →</button>
+          </div>
+        </div>
+% }
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <a href="#" class="page-link">1</a>
+        <a href="#" class="page-link active">2</a>
+        <a href="#" class="page-link">3</a>
+        <a href="#" class="page-link">4</a>
+        <a href="#" class="page-link">5</a>
+        <span class="page-dots">...</span>
+        <a href="#" class="page-link">»</a>
+        <a href="#" class="page-link">»»</a>
+      </div>
+% } else {
+      <div class="no-results">
+        <h3>No projects found</h3>
+        <p>Try adjusting your filters to see more results.</p>
+      </div>
+% }
+    </div>
+    
+    <div class="projects-map-column">
+      <div id="projectsMap" class="projects-map"></div>
+    </div>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+
+<script>
+mapboxgl.accessToken = 'pk.eyJ1IjoiYWRlYmJpc2kiLCJhIjoiY21sMW13OWQwMDV0ejNkc2UxdzF5NDF5MCJ9.lm68dxyBNwpoectHgVFrMg';
+const map = new mapboxgl.Map({
+  container: 'projectsMap',
+  style: 'mapbox://styles/mapbox/streets-v12',
+  center: [25.0, 45.9], // Romania center
+  zoom: 6
+});
+
+// Add markers for projects
+const projectLocations = [
+  { coords: [21.23, 45.75], title: 'Water Network Rehabilitation', county: 'TIMIS' },
+  { coords: [23.58, 46.07], title: 'Residential Building', county: 'ALBA' },
+  { coords: [21.23, 45.76], title: 'XCity Towers', county: 'TIMIS' },
+  { coords: [26.10, 44.43], title: 'Sisesti Complex', county: 'ILFOV' },
+  { coords: [26.10, 44.43], title: 'Timpuri Noi Offices', county: 'BUCHAREST' },
+  { coords: [26.25, 47.65], title: 'Residential Home', county: 'SUCEAVA' },
+  { coords: [25.45, 44.93], title: 'Dental Clinic', county: 'DAMBOVITA' },
+  { coords: [24.37, 45.10], title: 'Recovery Center', county: 'VALCEA' },
+  { coords: [25.33, 43.98], title: 'Driving School', county: 'TELEORMAN' },
+  { coords: [26.15, 44.50], title: 'Residential Building', county: 'ILFOV' }
+];
+
+projectLocations.forEach(project => {
+  const popup = new mapboxgl.Popup({ offset: 25 })
+    .setHTML(`<div style="color: #333;"><h4 style="margin: 0 0 5px 0; font-size: 14px;">${project.title}</h4><p style="margin: 0; font-size: 12px; color: #666;">${project.county}</p></div>`);
+
+  new mapboxgl.Marker({ color: '#f59e0b' })
+    .setLngLat(project.coords)
+    .setPopup(popup)
+    .addTo(map);
+});
+</script>
+
+<!-- Project Details Modal -->
+<div id="projectModal" class="project-modal">
+  <div class="modal-overlay" onclick="closeProjectModal()"></div>
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeProjectModal()">&times;</button>
+    <div class="modal-header">
+      <h2 id="modalTitle"></h2>
+      <span id="modalId" class="project-id"></span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <h3>Project Information</h3>
+        <div class="modal-info-grid">
+          <div class="modal-info-item">
+            <span class="modal-label">County:</span>
+            <span id="modalCounty"></span>
+          </div>
+          <div class="modal-info-item">
+            <span class="modal-label">Status:</span>
+            <span id="modalStatus" class="status-badge"></span>
+          </div>
+          <div class="modal-info-item">
+            <span class="modal-label">Size/Value:</span>
+            <span id="modalValue"></span>
+          </div>
+          <div class="modal-info-item">
+            <span class="modal-label">Size:</span>
+            <span id="modalSize" class="size-badge"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-section">
+        <h3>Requirements</h3>
+        <p id="modalRequests" class="modal-requests"></p>
+      </div>
+
+      <div class="modal-section">
+        <h3>Project Details</h3>
+        <div class="modal-info-grid">
+          <div class="modal-info-item">
+            <span class="modal-label">Beneficiary:</span>
+            <span id="modalBeneficiary"></span>
+          </div>
+          <div class="modal-info-item">
+            <span class="modal-label">Designer:</span>
+            <span id="modalDesigner"></span>
+          </div>
+          <div class="modal-info-item">
+            <span class="modal-label">Contractor:</span>
+            <span id="modalContractor"></span>
+          </div>
+          <div class="modal-info-item">
+            <span class="modal-label">Date:</span>
+            <span id="modalDate"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-primary">Contact About This Project</button>
+        <button class="btn-secondary" onclick="closeProjectModal()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function openProjectModal(id, title, county, status, value, size, requests, beneficiary, designer, contractor, date) {
+  document.getElementById('modalId').textContent = 'ID: ' + id;
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalCounty').textContent = county;
+  document.getElementById('modalStatus').textContent = status;
+  document.getElementById('modalValue').textContent = value;
+  document.getElementById('modalSize').textContent = size;
+  document.getElementById('modalRequests').textContent = requests;
+  document.getElementById('modalBeneficiary').textContent = beneficiary;
+  document.getElementById('modalDesigner').textContent = designer;
+  document.getElementById('modalContractor').textContent = contractor;
+  document.getElementById('modalDate').textContent = date;
+  
+  document.getElementById('projectModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeProjectModal() {
+  document.getElementById('projectModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeProjectModal();
+  }
+});
+</script>
+
+</body>
+</html>
