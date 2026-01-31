@@ -1,0 +1,204 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie param);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+my $query = $q->param('q') || '';
+my $city = $q->param('city') || '';
+my $state = $q->param('state') || '';
+my $min_price = $q->param('min_price') || '';
+my $max_price = $q->param('max_price') || '';
+my $bedrooms = $q->param('bedrooms') || '';
+my $bathrooms = $q->param('bathrooms') || '';
+my $min_sqft = $q->param('min_sqft') || '';
+my @properties = ();
+
+my $has_filters = $query || $city || $state || $min_price || $max_price || $bedrooms || $bathrooms || $min_sqft;
+
+if ($has_filters) {
+  my $dbh = dbh();
+  eval {
+    my @conditions;
+    my @params;
+    
+    if ($query) {
+      push @conditions, "(address LIKE ? OR zip_code LIKE ? OR description LIKE ?)";
+      push @params, "%$query%", "%$query%", "%$query%";
+    }
+    if ($city) {
+      push @conditions, "city LIKE ?";
+      push @params, "%$city%";
+    }
+    if ($state) {
+      push @conditions, "state LIKE ?";
+      push @params, "%$state%";
+    }
+    if ($min_price) {
+      push @conditions, "price >= ?";
+      push @params, $min_price;
+    }
+    if ($max_price) {
+      push @conditions, "price <= ?";
+      push @params, $max_price;
+    }
+    if ($bedrooms) {
+      push @conditions, "bedrooms >= ?";
+      push @params, $bedrooms;
+    }
+    if ($bathrooms) {
+      push @conditions, "bathrooms >= ?";
+      push @params, $bathrooms;
+    }
+    if ($min_sqft) {
+      push @conditions, "square_feet >= ?";
+      push @params, $min_sqft;
+    }
+    
+    my $where_clause = join(' AND ', @conditions);
+    my $sql = "SELECT * FROM properties WHERE $where_clause ORDER BY created_at DESC";
+    my $sth = $dbh->prepare($sql);
+    $sth->execute(@params);
+    while (my $row = $sth->fetchrow_hashref) {
+      push @properties, $row;
+    }
+  };
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Search Results - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <link href='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css' rel='stylesheet' />
+  <script src='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js'></script>
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'search') %>
+
+<div class="search-page">
+  <div class="container">
+    <div class="search-header">
+      <h1>Search Properties</h1>
+      <form method="get" action="/search/" class="search-form-advanced">
+        <div class="form-row-filters">
+          <div class="form-group">
+            <label for="q">Address / ZIP</label>
+            <input type="text" name="q" id="q" value="<% $query %>" placeholder="Address or ZIP">
+          </div>
+          <div class="form-group">
+            <label for="city">City</label>
+            <input type="text" name="city" id="city" value="<% $city %>" placeholder="City">
+          </div>
+          <div class="form-group">
+            <label for="state">State</label>
+            <input type="text" name="state" id="state" value="<% $state %>" placeholder="State">
+          </div>
+        </div>
+        
+        <div class="form-row-filters">
+          <div class="form-group">
+            <label for="min_price">Min Price</label>
+            <input type="number" name="min_price" id="min_price" value="<% $min_price %>" placeholder="Min $">
+          </div>
+          <div class="form-group">
+            <label for="max_price">Max Price</label>
+            <input type="number" name="max_price" id="max_price" value="<% $max_price %>" placeholder="Max $">
+          </div>
+          <div class="form-group">
+            <label for="bedrooms">Bedrooms</label>
+            <input type="number" name="bedrooms" id="bedrooms" value="<% $bedrooms %>" placeholder="Min beds">
+          </div>
+          <div class="form-group">
+            <label for="bathrooms">Bathrooms</label>
+            <input type="number" name="bathrooms" id="bathrooms" value="<% $bathrooms %>" placeholder="Min baths" step="0.5">
+          </div>
+          <div class="form-group">
+            <label for="min_sqft">Min Sq Ft</label>
+            <input type="number" name="min_sqft" id="min_sqft" value="<% $min_sqft %>" placeholder="Min sq ft">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="submit" class="btn-primary">Search</button>
+          <a href="/search/" class="btn-secondary">Clear Filters</a>
+        </div>
+      </form>
+    </div>
+
+% if ($has_filters) {
+% if (@properties) {
+    <div class="search-layout">
+      <div class="search-results-column">
+        <p class="results-count">Showing <strong><% scalar(@properties) %></strong> results</p>
+        
+% foreach my $property (@properties) {
+        <div class="property-card">
+          <div class="property-image">🏠</div>
+          <div class="property-details">
+            <h3><% $property->{address} %></h3>
+            <p class="property-location"><% $property->{city} %>, <% $property->{state} %> <% $property->{zip_code} %></p>
+            <p class="property-info"><% $property->{bedrooms} || 'N/A' %> beds • <% $property->{bathrooms} || 'N/A' %> baths • <% $property->{square_feet} ? sprintf("%,d", $property->{square_feet}) : 'N/A' %> sq ft</p>
+            <p class="property-price">$<% $property->{price} ? sprintf("%,.0f", $property->{price}) : 'N/A' %></p>
+% if ($property->{description}) {
+            <p class="property-description"><% $property->{description} %></p>
+% }
+          </div>
+        </div>
+% }
+      </div>
+      
+      <div class="map-column">
+        <div id="map" class="property-map-side"></div>
+      </div>
+    </div>
+% } else {
+    <div class="search-results">
+      <p class="results-count">Showing <strong>0</strong> results</p>
+      <p class="no-results">No properties found matching your filters.</p>
+    </div>
+% }
+% } else {
+    <p class="no-query">Use the filters above to search for properties.</p>
+% }
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+
+<script>
+if (document.getElementById('map')) {
+  mapboxgl.accessToken = 'pk.eyJ1IjoiYWRlYmJpc2kiLCJhIjoiY21sMW13OWQwMDV0ejNkc2UxdzF5NDF5MCJ9.lm68dxyBNwpoectHgVFrMg';
+  const map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/streets-v12',
+    center: [-122.4194, 37.7749], // San Francisco
+    zoom: 12
+  });
+
+  // Sample property markers
+  const properties = [
+    { coords: [-122.4194, 37.7749], title: '123 Main Street', price: '$1,250,000' },
+    { coords: [-122.4094, 37.7849], title: '456 Oak Avenue', price: '$1,850,000' },
+    { coords: [-122.4294, 37.7649], title: '789 Pine Road', price: '$950,000' }
+  ];
+
+  properties.forEach(property => {
+    const popup = new mapboxgl.Popup({ offset: 25 })
+      .setHTML(`<h3>${property.title}</h3><p>${property.price}</p>`);
+
+    new mapboxgl.Marker()
+      .setLngLat(property.coords)
+      .setPopup(popup)
+      .addTo(map);
+  });
+}
+</script>
+
+</body>
+</html>

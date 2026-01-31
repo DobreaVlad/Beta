@@ -1,0 +1,134 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie redirect param);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+if (!$user || !$user->{is_admin}) {
+  print $q->redirect('/');
+  $m->abort();
+}
+
+my $search_field = $q->param('field') || 'email';
+my $search_query = $q->param('query') || '';
+my @users = ();
+my $error = '';
+
+if ($search_query) {
+  my $dbh = dbh();
+  my $allowed_fields = {
+    'email' => 1,
+    'name' => 1,
+    'id' => 1
+  };
+  
+  if (!$allowed_fields->{$search_field}) {
+    $error = 'Invalid search field';
+  } else {
+    eval {
+      my $sql = "SELECT id, name, email, is_admin, created_at FROM users WHERE $search_field LIKE ?";
+      my $sth = $dbh->prepare($sql);
+      $sth->execute("%$search_query%");
+      while (my $row = $sth->fetchrow_hashref) {
+        push @users, $row;
+      }
+    };
+    if ($@) {
+      $error = "Search error: $@";
+    }
+  }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Users - Admin</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'admin') %>
+
+<div class="admin-page">
+  <div class="container">
+    <div class="admin-header">
+      <h1>Manage Users</h1>
+      <a href="/admin/" class="btn-secondary">← Back to Admin</a>
+    </div>
+
+    <div class="search-panel">
+      <h2>Search Users</h2>
+      <form method="get" action="/admin/users/" class="admin-search-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="field">Search By</label>
+            <select name="field" id="field" class="form-select">
+              <option value="email" <% $search_field eq 'email' ? 'selected' : '' %>>Email</option>
+              <option value="name" <% $search_field eq 'name' ? 'selected' : '' %>>Name</option>
+              <option value="id" <% $search_field eq 'id' ? 'selected' : '' %>>User ID</option>
+            </select>
+          </div>
+          <div class="form-group flex-grow">
+            <label for="query">Search Query</label>
+            <input type="text" name="query" id="query" value="<% $search_query %>" placeholder="Enter search term..." required>
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn-primary">Search</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+% if ($error) {
+    <div class="error"><% $error %></div>
+% }
+
+% if ($search_query && !$error) {
+    <div class="results-panel">
+      <h2>Search Results (<% scalar(@users) %> found)</h2>
+      
+% if (@users) {
+      <div class="users-table-container">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Admin</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+% foreach my $found_user (@users) {
+            <tr>
+              <td><% $found_user->{id} %></td>
+              <td><% $found_user->{name} %></td>
+              <td><% $found_user->{email} %></td>
+              <td><% $found_user->{is_admin} ? '✓ Yes' : 'No' %></td>
+              <td><% $found_user->{created_at} %></td>
+              <td>
+                <a href="/admin/users/edit.html?id=<% $found_user->{id} %>" class="btn-small btn-primary">Edit</a>
+              </td>
+            </tr>
+% }
+          </tbody>
+        </table>
+      </div>
+% } else {
+      <p class="no-results">No users found matching your search.</p>
+% }
+    </div>
+% }
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

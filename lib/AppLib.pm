@@ -70,14 +70,14 @@ sub delete_session {
 }
 
 sub create_user {
-    my ($username, $password_hash, $salt, $email) = @_;
+    my ($name, $password_hash, $salt, $email) = @_;
     my $dbh = dbh();
     eval {
-        $dbh->do('INSERT INTO users (username, email, password_hash, salt) VALUES (?, ?, ?, ?)',
-            undef, $username, $email, $password_hash, $salt);
+        $dbh->do('INSERT INTO users (name, email, password_hash, salt) VALUES (?, ?, ?, ?)',
+            undef, $name, $email, $password_hash, $salt);
     };
     if ($@) {
-        return { ok => 0, error => 'Username or email already exists' };
+        return { ok => 0, error => 'Name or email already exists' };
     }
     return { ok => 1 };
 }

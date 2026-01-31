@@ -1,0 +1,90 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(dbh create_password_reset send_email);
+use CGI qw(:standard);
+
+my $q = CGI->new;
+my $error = '';
+my $success = '';
+my $debug_link = '';
+my $send_error = '';
+
+if ($q->request_method eq 'POST') {
+    my $identifier = $q->param('identifier') || '';
+    $identifier =~ s/^\s+|\s+$//g;
+
+    if ($identifier eq '') {
+        $error = 'Please enter your username or email';
+    } else {
+        my $dbh = dbh();
+        my $sth = $dbh->prepare('SELECT id, email, name FROM users WHERE name = ? OR email = ?');
+        $sth->execute($identifier, $identifier);
+        my $user = $sth->fetchrow_hashref;
+
+        if ($user) {
+          my $token = create_password_reset($user->{id});
+            my $base = $q->url(-base => 1) || '';
+            $base =~ s|/+$||;
+            my $reset_link = $base . '/auth/reset.html?token=' . $token;
+          $debug_link = $reset_link if ($ENV{APP_ENV} && $ENV{APP_ENV} eq 'dev');
+
+            my $subject = 'Reset your PropertySite password';
+            my $body = "Hello $user->{username},\n\n" .
+                       "We received a request to reset your password. Use the link below to set a new password:\n\n" .
+                       "$reset_link\n\n" .
+                       "If you did not request this, you can ignore this email.\n";
+
+            my ($ok, $err) = send_email($user->{email}, $subject, $body);
+            if ($ok) {
+              $success = 'If the account exists, a reset link has been sent to the email address on file.';
+            } else {
+              $debug_link = $reset_link if (!$debug_link);
+              $send_error = $err || 'Unknown SMTP error';
+              $error = 'Unable to send reset email. Please try again later.';
+            }
+        } else {
+            $success = 'If the account exists, a reset link has been sent to the email address on file.';
+        }
+    }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forgot Password - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => undef, current => '') %>
+
+<div class="auth-container">
+  <h1>Forgot your password?</h1>
+% if ($error) {
+  <div class="error"><% $error %></div>
+% }
+% if ($success) {
+  <div class="success"><% $success %></div>
+% }
+% if ($debug_link) {
+  <div class="success">Dev reset link: <a href="<% $debug_link %>"><% $debug_link %></a></div>
+% }
+% if ($send_error && $ENV{APP_ENV} && $ENV{APP_ENV} eq 'dev') {
+  <div class="error">SMTP error: <% $send_error %></div>
+% }
+  <form method="post" action="/auth/reset_request.html">
+    <div class="form-group">
+      <label for="identifier">Name or Email</label>
+      <input type="text" id="identifier" name="identifier" required>
+    </div>
+    <button type="submit">Send Reset Link</button>
+  </form>
+  <div class="form-footer">
+    <p>Remembered your password? <a href="/auth/login.html">Login here</a></p>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

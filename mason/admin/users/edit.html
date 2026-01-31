@@ -1,0 +1,125 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie redirect param);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+if (!$user || !$user->{is_admin}) {
+  print $q->redirect('/');
+  $m->abort();
+}
+
+my $user_id = $q->param('id') || '';
+my $error = '';
+my $success = '';
+my $edit_user;
+
+if (!$user_id) {
+  $error = 'No user ID provided';
+} else {
+  my $dbh = dbh();
+  
+  # Handle form submission
+  if ($q->request_method eq 'POST') {
+    my $name = $q->param('name') || '';
+    my $email = $q->param('email') || '';
+    my $is_admin = $q->param('is_admin') ? 1 : 0;
+    
+    if ($name eq '' || $email eq '') {
+      $error = 'Name and email are required';
+    } else {
+      eval {
+        $dbh->do('UPDATE users SET name = ?, email = ?, is_admin = ? WHERE id = ?', 
+                 undef, $name, $email, $is_admin, $user_id);
+        $success = 'User updated successfully';
+      };
+      if ($@) {
+        $error = "Update failed: $@";
+      }
+    }
+  }
+  
+  # Fetch user data (re-fetch after update to show latest values)
+  eval {
+    my $sth = $dbh->prepare('SELECT id, name, email, is_admin, created_at FROM users WHERE id = ?');
+    $sth->execute($user_id);
+    $edit_user = $sth->fetchrow_hashref;
+  };
+  if ($@) {
+    $error = "Error loading user: $@";
+  } elsif (!$edit_user) {
+    $error = 'User not found';
+  }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit User - Admin</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'admin') %>
+
+<div class="admin-page">
+  <div class="container">
+    <div class="admin-header">
+      <h1>Edit User</h1>
+      <a href="/admin/users/" class="btn-secondary">← Back to Users</a>
+    </div>
+
+% if ($error) {
+    <div class="error"><% $error %></div>
+% }
+
+% if ($success) {
+    <div class="success"><% $success %></div>
+% }
+
+% if ($edit_user) {
+    <div class="edit-panel">
+      <form method="post" action="/admin/users/edit.html?id=<% $user_id %>">
+        <input type="hidden" name="id" value="<% $user_id %>">
+        <div class="form-group">
+          <label>User ID</label>
+          <input type="text" value="<% $edit_user->{id} %>" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" value="<% $edit_user->{name} %>" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" value="<% $edit_user->{email} %>" required>
+        </div>
+        
+        <div class="form-group">
+          <label>Created At</label>
+          <input type="text" value="<% $edit_user->{created_at} %>" readonly>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label class="checkbox-label">
+            <input type="checkbox" name="is_admin" value="1" <% $edit_user->{is_admin} ? 'checked' : '' %>>
+            <span>Administrator Access</span>
+          </label>
+          <p class="help-text">Grant this user admin privileges to access the admin panel and manage other users.</p>
+        </div>
+        
+        <button type="submit" class="btn-primary">Save Changes</button>
+      </form>
+    </div>
+% }
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

@@ -3,31 +3,27 @@ $user => undef
 $current => ''
 </%args>
 <header class="site-header">
-  <div class="top-bar">
-    <div class="container top-bar-inner">
-      <span class="tagline">Trusted Property Intelligence</span>
-      <div class="top-links">
-        <a href="/about.html">About</a>
-        <a href="/properties.html">Properties</a>
-        <a href="/contact.html">Contact</a>
-      </div>
-    </div>
-  </div>
   <div class="nav-bar">
     <div class="container nav-inner">
-      <a class="brand" href="/">PropertySite</a>
-      <form class="header-search" method="get" action="/properties.html">
-        <input type="text" name="q" placeholder="Search address, city, or ZIP">
-        <button type="submit" class="btn-primary">Search</button>
-      </form>
+      <a class="brand" href="/">Property Site</a>
+      <nav class="header-nav">
+        <a href="/about/">About</a>
+        <a href="/search/">Properties</a>
+        <a href="/pricing/">Pricing</a>
+        <a href="/contact/">Contact Us</a>
+      </nav>
       <div class="auth-actions">
 % if ($user) {
-        <span class="user-name">Hi, <% $user->{username} %></span>
-        <a href="/dashboard.html" class="btn-secondary">Dashboard</a>
-        <a href="/logout.html" class="btn-secondary">Logout</a>
+  <span class="user-name">Hi, <% $user->{name} %></span>
+% if ($user->{is_admin}) {
+        <a href="/admin/" class="admin-icon" title="Admin Panel">🔧</a>
+% }
+        <a href="/properties/add.html" class="btn-secondary">+ Add Property</a>
+        <a href="/profile/" class="btn-secondary">Profile</a>
+        <a href="/auth/logout.html" class="btn-secondary">Logout</a>
 % } else {
-        <a href="/login.html" class="btn-primary">Login</a>
-        <a href="/register.html" class="btn-secondary">Register</a>
+        <a href="/auth/login.html" class="btn-primary">Login</a>
+        <a href="/auth/register.html" class="btn-secondary">Register</a>
 % }
       </div>
     </div>

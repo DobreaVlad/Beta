@@ -1,0 +1,44 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session);
+use CGI qw(cookie redirect);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+if (!$user || !$user->{is_admin}) {
+  print $q->redirect('/');
+  $m->abort();
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'admin') %>
+
+<div class="auth-container">
+  <h1>Admin Dashboard</h1>
+  <p>Welcome, <% $user->{name} %>. You have admin access.</p>
+  
+  <div class="admin-menu">
+    <a href="/admin/users/" class="admin-menu-item">
+      <h3>👥 Manage Users</h3>
+      <p>Search and edit user accounts</p>
+    </a>
+    <a href="/admin/properties/" class="admin-menu-item">
+      <h3>🏠 Manage Properties</h3>
+      <p>Search and edit property listings</p>
+    </a>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

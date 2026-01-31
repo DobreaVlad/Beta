@@ -1,0 +1,60 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session);
+use CGI qw(cookie);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'about') %>
+
+<div class="auth-container">
+  <h1>About PropertySite</h1>
+  
+  <section>
+    <h2>Our Story</h2>
+    <p>Founded in 2025, PropertySite has been revolutionizing the way people find and list properties online. Our mission is to connect property seekers with their perfect homes while providing property owners with a powerful platform to showcase their listings.</p>
+    <p>With thousands of satisfied users and hundreds of successful transactions, we've built a reputation for excellence, reliability, and innovation in the real estate marketplace.</p>
+  </section>
+
+  <section>
+    <h2>What We Do</h2>
+    <p>PropertySite is a comprehensive property listing platform that makes finding and advertising properties simple and efficient. Whether you're looking for your dream home, a commercial space, or an investment property, our advanced search features and detailed listings help you make informed decisions.</p>
+    <p>For property owners and real estate professionals, we offer powerful tools to create compelling listings, manage inquiries, and reach a wide audience of potential buyers and renters.</p>
+  </section>
+
+  <section>
+    <h2>Why Choose Us</h2>
+    <ul>
+      <li><strong>User-Friendly Platform:</strong> Our intuitive interface makes property searching and listing effortless.</li>
+      <li><strong>Verified Listings:</strong> We maintain high standards to ensure all listings are legitimate and accurate.</li>
+      <li><strong>Advanced Search:</strong> Filter properties by location, price, size, amenities, and more to find exactly what you need.</li>
+      <li><strong>Secure & Private:</strong> Your data and transactions are protected with industry-leading security measures.</li>
+      <li><strong>Expert Support:</strong> Our dedicated customer service team is here to help you every step of the way.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Our Team</h2>
+    <p>Behind PropertySite is a passionate team of real estate experts, software engineers, and customer service professionals dedicated to providing you with the best property search experience. We're constantly innovating and improving our platform based on user feedback and industry trends.</p>
+  </section>
+
+  <section>
+    <h2>Get In Touch</h2>
+    <p>Have questions or suggestions? We'd love to hear from you! Visit our <a href="/contact">contact page</a> to reach out to our team.</p>
+  </section>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

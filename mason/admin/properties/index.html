@@ -1,0 +1,162 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie redirect param);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+if (!$user || !$user->{is_admin}) {
+  print $q->redirect('/');
+  $m->abort();
+}
+
+my $search_field = $q->param('field') || 'address';
+my $search_query = $q->param('query') || '';
+my @properties = ();
+my $error = '';
+
+my $dbh = dbh();
+
+eval {
+  if ($search_query) {
+    my $allowed_fields = {
+      'address' => 1,
+      'city' => 1,
+      'state' => 1,
+      'zip_code' => 1,
+      'id' => 1
+    };
+    
+    if (!$allowed_fields->{$search_field}) {
+      $error = 'Invalid search field';
+    } else {
+      my $sql = "SELECT id, address, city, state, zip_code, price, bedrooms, bathrooms, square_feet, created_at FROM properties WHERE $search_field LIKE ?";
+      my $sth = $dbh->prepare($sql);
+      $sth->execute("%$search_query%");
+      while (my $row = $sth->fetchrow_hashref) {
+        push @properties, $row;
+      }
+    }
+  } else {
+    # No search query - return all properties
+    my $sql = "SELECT id, address, city, state, zip_code, price, bedrooms, bathrooms, square_feet, created_at FROM properties ORDER BY created_at DESC";
+    my $sth = $dbh->prepare($sql);
+    $sth->execute();
+    while (my $row = $sth->fetchrow_hashref) {
+      push @properties, $row;
+    }
+  }
+};
+if ($@) {
+  $error = "Search error: $@";
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Properties - Admin</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'admin') %>
+
+<div class="admin-page">
+  <div class="container">
+    <div class="admin-header">
+      <h1>Manage Properties</h1>
+      <div class="header-actions">
+        <a href="/admin/properties/add.html" class="btn-primary">+ Add Property</a>
+        <a href="/admin/" class="btn-secondary">← Back to Admin</a>
+      </div>
+    </div>
+
+    <div class="search-panel">
+      <h2>Search Properties</h2>
+      <form method="get" action="/admin/properties/" class="admin-search-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="field">Search By</label>
+            <select name="field" id="field" class="form-select">
+              <option value="address" <% $search_field eq 'address' ? 'selected' : '' %>>Address</option>
+              <option value="city" <% $search_field eq 'city' ? 'selected' : '' %>>City</option>
+              <option value="state" <% $search_field eq 'state' ? 'selected' : '' %>>State</option>
+              <option value="zip_code" <% $search_field eq 'zip_code' ? 'selected' : '' %>>ZIP Code</option>
+              <option value="id" <% $search_field eq 'id' ? 'selected' : '' %>>Property ID</option>
+            </select>
+          </div>
+          <div class="form-group flex-grow">
+            <label for="query">Search Query</label>
+            <input type="text" name="query" id="query" value="<% $search_query %>" placeholder="Enter search term (leave empty for all)...">
+          </div>
+          <div class="form-group">
+            <label>&nbsp;</label>
+            <button type="submit" class="btn-primary">Search</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+% if ($error) {
+    <div class="error"><% $error %></div>
+% }
+
+% if (!$error) {
+    <div class="results-panel">
+% if ($search_query) {
+      <h2>Search Results (<% scalar(@properties) %> found)</h2>
+% } else {
+      <h2>All Properties (<% scalar(@properties) %> total)</h2>
+% }
+      
+% if (@properties) {
+      <div class="users-table-container">
+        <table class="users-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Address</th>
+              <th>City</th>
+              <th>State</th>
+              <th>ZIP</th>
+              <th>Price</th>
+              <th>Beds</th>
+              <th>Baths</th>
+              <th>Sq Ft</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+% foreach my $property (@properties) {
+            <tr>
+              <td><% $property->{id} %></td>
+              <td><% $property->{address} %></td>
+              <td><% $property->{city} %></td>
+              <td><% $property->{state} %></td>
+              <td><% $property->{zip_code} %></td>
+              <td>$<% $property->{price} ? sprintf("%.0f", $property->{price}) : 'N/A' %></td>
+              <td><% $property->{bedrooms} || 'N/A' %></td>
+              <td><% $property->{bathrooms} || 'N/A' %></td>
+              <td><% $property->{square_feet} ? sprintf("%,d", $property->{square_feet}) : 'N/A' %></td>
+              <td>
+                <a href="/admin/properties/edit.html?id=<% $property->{id} %>" class="btn-small btn-primary">Edit</a>
+              </td>
+            </tr>
+% }
+          </tbody>
+        </table>
+      </div>
+% } else {
+      <p class="no-results">No properties found matching your search.</p>
+% }
+    </div>
+% }
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

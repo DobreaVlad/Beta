@@ -8,20 +8,20 @@ my $error = '';
 my $success = '';
 
 if ($q->request_method eq 'POST') {
-    my $username = $q->param('username') || '';
+    my $name = $q->param('name') || '';
     my $email = $q->param('email') || '';
     my $password = $q->param('password') || '';
     my $password2 = $q->param('password2') || '';
     
-    if ($username eq '' || $password eq '' || $email eq '') {
-        $error = 'Please provide username, email, and password';
+    if ($name eq '' || $password eq '' || $email eq '') {
+        $error = 'Please provide name, email, and password';
     } elsif ($password ne $password2) {
         $error = 'Passwords do not match';
     } elsif (length($password) < 6) {
         $error = 'Password must be at least 6 characters';
     } else {
         my ($password_hash, $salt) = hash_password($password);
-        my $res = create_user($username, $password_hash, $salt, $email);
+        my $res = create_user($name, $password_hash, $salt, $email);
         
         if ($res->{ok}) {
             $success = 'Registration successful! You can now login.';
@@ -50,10 +50,10 @@ if ($q->request_method eq 'POST') {
 % if ($success) {
   <div class="success"><% $success %></div>
 % }
-  <form method="post" action="/register.html">
+  <form method="post" action="/auth/register.html">
     <div class="form-group">
-      <label for="username">Username</label>
-      <input type="text" id="username" name="username" required>
+      <label for="name">Name</label>
+      <input type="text" id="name" name="name" required>
     </div>
     <div class="form-group">
       <label for="email">Email</label>
@@ -70,7 +70,7 @@ if ($q->request_method eq 'POST') {
     <button type="submit">Register</button>
   </form>
   <div class="form-footer">
-    <p>Already have an account? <a href="/login.html">Login here</a></p>
+    <p>Already have an account? <a href="/auth/login.html">Login here</a></p>
   </div>
 </div>
 

@@ -1,0 +1,47 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session);
+use CGI qw(cookie);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+if (!$user) {
+  print $q->redirect('/auth/login.html');
+    $m->abort();
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'profile') %>
+
+<div class="auth-container">
+  <h1>Your Profile</h1>
+  <div class="form-group">
+    <label>Name</label>
+    <input type="text" value="<% $user->{name} %>" readonly>
+  </div>
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" value="<% $user->{email} %>" readonly>
+  </div>
+  <div class="form-group">
+    <label>Member Since</label>
+    <input type="text" value="<% $user->{created_at} %>" readonly>
+  </div>
+  <div class="form-footer">
+    <p><a href="/auth/logout.html">Log out</a></p>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

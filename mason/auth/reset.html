@@ -1,0 +1,77 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_reset_token consume_password_reset hash_password update_user_password);
+use CGI qw(:standard);
+
+my $q = CGI->new;
+my $token = $q->param('token') || '';
+my $error = '';
+my $success = '';
+
+if ($q->request_method eq 'POST') {
+    $token = $q->param('token') || '';
+    my $password = $q->param('password') || '';
+    my $password2 = $q->param('password2') || '';
+
+    if ($token eq '') {
+        $error = 'Invalid or missing reset token.';
+    } elsif ($password eq '' || $password2 eq '') {
+        $error = 'Please enter and confirm your new password.';
+    } elsif ($password ne $password2) {
+        $error = 'Passwords do not match.';
+    } elsif (length($password) < 6) {
+        $error = 'Password must be at least 6 characters.';
+    } else {
+        my $user = get_user_by_reset_token($token);
+        if (!$user) {
+            $error = 'This reset link is invalid or has expired.';
+        } else {
+            my ($password_hash, $salt) = hash_password($password);
+            update_user_password($user->{id}, $password_hash, $salt);
+            consume_password_reset($token);
+            $success = 'Your password has been updated. You can now log in.';
+        }
+    }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Password - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => undef, current => '') %>
+
+<div class="auth-container">
+  <h1>Reset your password</h1>
+% if ($error) {
+  <div class="error"><% $error %></div>
+% }
+% if ($success) {
+  <div class="success"><% $success %></div>
+% }
+% if (!$success) {
+  <form method="post" action="/auth/reset.html">
+    <input type="hidden" name="token" value="<% $token %>">
+    <div class="form-group">
+      <label for="password">New Password</label>
+      <input type="password" id="password" name="password" required minlength="6">
+    </div>
+    <div class="form-group">
+      <label for="password2">Confirm New Password</label>
+      <input type="password" id="password2" name="password2" required minlength="6">
+    </div>
+    <button type="submit">Update Password</button>
+  </form>
+% }
+  <div class="form-footer">
+    <p><a href="/auth/login.html">Back to login</a></p>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

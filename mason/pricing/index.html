@@ -1,0 +1,100 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session);
+use CGI qw(cookie);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+</%init>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing - PropertySite</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'pricing') %>
+
+<div class="pricing-page">
+  <div class="container">
+    <div class="pricing-header">
+      <h1>Choose Your Plan</h1>
+      <p>Access millions of property records with detailed information</p>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-badge">Basic</div>
+        <h3>Basic</h3>
+        <div class="price">
+          <span class="price-amount">$29</span>
+          <span class="price-period">/month</span>
+        </div>
+        <ul class="pricing-features">
+          <li>✓ 50 property reports/month</li>
+          <li>✓ Basic property data</li>
+          <li>✓ Owner information</li>
+          <li>✓ Sales history</li>
+          <li>✓ Email support</li>
+        </ul>
+        <a href="/auth/register.html" class="btn-primary btn-large">Get Started</a>
+      </div>
+
+      <div class="pricing-card featured">
+        <div class="pricing-badge featured-badge">Most Popular</div>
+        <h3>Professional</h3>
+        <div class="price">
+          <span class="price-amount">$99</span>
+          <span class="price-period">/month</span>
+        </div>
+        <ul class="pricing-features">
+          <li>✓ 250 property reports/month</li>
+          <li>✓ Full property data</li>
+          <li>✓ Owner & contact info</li>
+          <li>✓ Sales & mortgage history</li>
+          <li>✓ Market trends & analytics</li>
+          <li>✓ Property alerts</li>
+          <li>✓ Priority support</li>
+        </ul>
+        <a href="/auth/register.html" class="btn-primary btn-large">Get Started</a>
+      </div>
+
+      <div class="pricing-card">
+        <div class="pricing-badge">Enterprise</div>
+        <h3>Enterprise</h3>
+        <div class="price">
+          <span class="price-amount">$299</span>
+          <span class="price-period">/month</span>
+        </div>
+        <ul class="pricing-features">
+          <li>✓ Unlimited property reports</li>
+          <li>✓ Complete property data</li>
+          <li>✓ Advanced analytics & forecasting</li>
+          <li>✓ API access</li>
+          <li>✓ Bulk data exports</li>
+          <li>✓ Custom reports</li>
+          <li>✓ Dedicated account manager</li>
+          <li>✓ 24/7 support</li>
+        </ul>
+        <a href="/contact/" class="btn-primary btn-large">Contact Sales</a>
+      </div>
+    </div>
+
+    <div class="pricing-footer">
+      <h2>All plans include:</h2>
+      <div class="feature-list">
+        <div class="feature-item">🔒 Secure & private data access</div>
+        <div class="feature-item">📊 Real-time property updates</div>
+        <div class="feature-item">💾 Data export capabilities</div>
+        <div class="feature-item">📱 Mobile-friendly interface</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>
