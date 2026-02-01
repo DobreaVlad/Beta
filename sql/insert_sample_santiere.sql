@@ -1,25 +1,46 @@
--- Sample construction sites (santiere) for testing
--- This file will be run automatically on next deploy
+-- Delete all existing santiere and insert realistic sample data
+-- Based on datesantiere.ro format
 -- DELETE THIS FILE after deploy to prevent re-inserting data
 
-INSERT INTO santiere (titlu, judet, adresa, valoare, domeniu, subdomeniu, descriere, solicitari, dimensiune, sector, stadiu) VALUES
-('Modernizare Strada Principala', 'Cluj', 'Strada Principala nr. 45, Cluj-Napoca', '2.5 milioane RON', 'Infrastructura', 'Drumuri', 'Modernizare complet strada cu asfaltare noua si trotuare', 'Autorizatie constructie, Aviz mediu', 'Mare', 'Public', 'In proiectare'),
-('Constructie Bloc Rezidential', 'Bucuresti', 'Bulevardul Unirii nr. 123, Sector 3', '15 milioane RON', 'Rezidential', 'Cladiri', 'Bloc cu 120 apartamente, 10 etaje, 2 scari', 'Autorizatie constructie, Studiu geotehnic', 'Mare', 'Privat', 'In executie'),
-('Reabilitare Scoala Generala', 'Timis', 'Str. Scolii nr. 5, Timisoara', '3.2 milioane RON', 'Educatie', 'Reabilitari', 'Reabilitare termica si modernizare instalatii', 'Expertiza tehnica, Aviz ISU', 'Mediu', 'Public', 'Finalizat'),
-('Parc Industrial Vest', 'Arad', 'DN7, km 534, Arad', '45 milioane RON', 'Industrial', 'Dezvoltare', 'Parc industrial cu 15 hale si infrastructura completa', 'PUZ, Racorduri utilitati', 'Mare', 'Privat', 'In proiectare'),
-('Centru Medical Policlinica', 'Iasi', 'Strada Pacurari nr. 78, Iasi', '8.5 milioane RON', 'Sanatate', 'Cladiri medicale', 'Policlinica cu 40 cabinete si laborator', 'Autorizatie sanitara, Aviz DSP', 'Mare', 'Privat', 'In executie'),
-('Pod peste Raul Mures', 'Mures', 'DN15, km 23, Targu Mures', '12 milioane RON', 'Infrastructura', 'Poduri', 'Pod nou cu 3 benzi pe sens, lungime 450m', 'Studiu hidrotehnic, Aviz ANAR', 'Mare', 'Public', 'In licitatie'),
-('Complex Comercial Plaza', 'Constanta', 'Bulevardul Mamaia nr. 267, Constanta', '22 milioane RON', 'Comercial', 'Mall-uri', 'Centru comercial cu 80 magazine si cinematograf', 'PUZ, Autorizatie ISU', 'Mare', 'Privat', 'In executie'),
-('Canalizare Cartier Nou', 'Brasov', 'Cartier Tractorul, Brasov', '4.8 milioane RON', 'Utilitati', 'Canalizare', 'Retea canalizare menajera si pluviala 12 km', 'Aviz Apa Nova, Studiu impact', 'Mediu', 'Public', 'In proiectare'),
-('Vila Unifamiliala Premium', 'Sibiu', 'Strada Florilor nr. 12, Cisnadie', '850.000 RON', 'Rezidential', 'Case', 'Vila P+1, 320 mp utili, arhitectura contemporana', 'Autorizatie constructie', 'Mic', 'Privat', 'In executie'),
-('Modernizare Spital Judetean', 'Bihor', 'Str. Republicii nr. 35, Oradea', '18 milioane RON', 'Sanatate', 'Reabilitari', 'Reabilitare sectii chirurgie si ATI, dotari noi', 'Expertiza, Aviz Ministerul Sanatatii', 'Mare', 'Public', 'In licitatie'),
-('Depozit Logistic', 'Prahova', 'DN1, km 87, Ploiesti', '6.5 milioane RON', 'Industrial', 'Depozite', 'Hala depozitare 8000 mp, inaltime 12m', 'Autorizatie constructie, Aviz mediu', 'Mare', 'Privat', 'Finalizat'),
-('Parcari Subterane Centru', 'Cluj', 'Piata Unirii, Cluj-Napoca', '9.8 milioane RON', 'Infrastructura', 'Parcari', 'Parcare subterana 3 niveluri, 450 locuri', 'Studiu geotehnic, PUZ', 'Mare', 'Public', 'In proiectare'),
-('Hotel 4 Stele Business', 'Bucuresti', 'Calea Victoriei nr. 156, Sector 1', '25 milioane RON', 'Turism', 'Hoteluri', 'Hotel 150 camere, restaurant, sala conferinte', 'Clasificare turistica, Aviz ISU', 'Mare', 'Privat', 'In executie'),
-('Gradinita cu 6 Sali', 'Sibiu', 'Strada Mihai Viteazu nr. 34, Sibiu', '3.8 milioane RON', 'Educatie', 'Gradinite', 'Gradinita P+1, 180 copii, curte amenajata', 'Autorizatie constructie, Aviz ISU', 'Mediu', 'Public', 'In executie'),
-('Retea Gaze Naturale', 'Valcea', 'Comuna Horezu, Valcea', '2.2 milioane RON', 'Utilitati', 'Gaze', 'Retea distributie gaze 18 km, 340 bransamente', 'Aviz ANRE, Proiect tehnic', 'Mediu', 'Public', 'In proiectare'),
-('Fabrica Componente Auto', 'Arges', 'Zona Industriala Mioveni', '35 milioane RON', 'Industrial', 'Fabrici', 'Fabrica 12.000 mp, 3 linii productie', 'Aviz mediu, Racorduri industriale', 'Mare', 'Privat', 'In executie'),
-('Renovare Casa Monument', 'Brasov', 'Piata Sfatului nr. 8, Brasov', '1.5 milioane RON', 'Cultural', 'Monumente', 'Restaurare fatada si structura, secolul XVII', 'Aviz Ministerul Culturii, Expertiza', 'Mediu', 'Public', 'In executie'),
-('Statie Epurare Apa', 'Galati', 'Zona Industriala, Galati', '42 milioane RON', 'Utilitati', 'Apa', 'Statie epurare apa uzata 150.000 mc/zi', 'Aviz mediu, Studiu impact', 'Mare', 'Public', 'In licitatie'),
-('Complex Sportiv', 'Timis', 'Str. Stadionului nr. 12, Timisoara', '11 milioane RON', 'Sport', 'Sali sport', 'Sala polivalenta 2000 locuri, teren sintetic', 'Autorizatie constructie, PUZ', 'Mare', 'Public', 'In proiectare'),
-('Magazin Alimentar Lanț', 'Dolj', 'Bulevardul Decebal nr. 89, Craiova', '1.8 milioane RON', 'Comercial', 'Magazine', 'Supermarket 1200 mp, parcare 50 locuri', 'Autorizatie functionare, Aviz sanitar', 'Mediu', 'Privat', 'Finalizat');
+TRUNCATE TABLE santiere;
+
+INSERT INTO santiere (titlu, judet, adresa, valoare, domeniu, subdomeniu, descriere, solicitari, observatii, dimensiune, sector, stadiu) VALUES
+('Reabilitare retea apa', 'Timis', 'Zona Plopis, Timisoara', '6.925.317 RON', 'Infrastructura', 'Utilitati', 'Reabilitare retea de apa, lungime 8.5 km', 'materiale pentru bransamente, tevi, conducte, prefabricate din beton, piatra sparta', 'Proiect finantat prin PNRR', 'Mare', 'Public', 'In proiectare'),
+
+('Ansamblu rezidential XCity Towers', 'Timis', 'Calea Sagului nr. 127, Timisoara', '45 milioane RON', 'Rezidential', 'Cladiri', 'Complex rezidential cu 2 turnuri: S+P+10E si S+P+15E, 320 apartamente', 'beton, fier beton, caramida, finisaje, instalatii termice, instalatii sanitare, instalatii electrice', 'Dezvoltator: Impact Developer & Contractor', 'Mare', 'Privat', 'In executie'),
+
+('Ansamblul rezidential Sisesti Site', 'Ilfov', 'Sisesti, comuna Tunari', '180 milioane RON', 'Rezidential', 'Ansamblu rezidential', 'Ansamblu rezidential pe 480.000 mp, 1200 unitati', 'antreprenoriat general, materiale pentru constructii, infrastructura', 'Etapizare: 5 faze pe 8 ani', 'Mare', 'Privat', 'In proiectare'),
+
+('Ansamblul Timpuri Noi Offices', 'Bucuresti', 'Bulevardul Unirii nr. 45, Sector 3', '65 milioane RON', 'Comercial', 'Birouri', 'Complex de birouri clasa A, 50.000 mp, S+P+13E', 'fier beton, caramida, tamplarie, finisaje interioare si exterioare, fatada sticla', 'Certificare LEED Gold', 'Mare', 'Privat', 'In executie'),
+
+('Locuinta unifamiliala', 'Alba', 'Str. Libertatii nr. 23, Alba Iulia', '450.000 RON', 'Rezidential', 'Case', 'Casa D+P, 180 mp construiti', 'beton, fier beton, caramida, tamplarie PVC, termosisteme, sapa, finisaje interioare si exterioare', 'Teren 600 mp', 'Mic', 'Privat', 'In executie'),
+
+('Locuinta P+1E', 'Suceava', 'Str. Caisului nr. 8, Suceava', '380.000 RON', 'Rezidential', 'Case', 'Casa P+1E, suprafata utila 240 mp', 'executie, beton, fier beton, caramida, termosisteme, tamplarie PVC, finisaje, sapa', 'Fundatie executata', 'Mic', 'Privat', 'In proiectare'),
+
+('Clinica stomatologica', 'Dambovita', 'Bulevardul Unirii nr. 156, Targoviste', '2.8 milioane RON', 'Sanatate', 'Clinici', 'Clinica stomatologica cu 15 cabinete, P+2E', 'beton, fier, caramida, tamplarie, fatada ventilata, hidroizolatii, instalatii medicale', 'Aviz DSP in curs de obtinere', 'Mediu', 'Privat', 'In proiectare'),
+
+('Construire centru de recuperare', 'Valcea', 'Str. Traian nr. 67, Ramnicu Valcea', '2.529.804 RON', 'Sanatate', 'Centre recuperare', 'Centru de recuperare si reabilitare, P+1E, 800 mp', 'beton, fier beton, caramida, termosisteme, tamplarie PVC, finisaje, sapa, lavabile, gleturi, vopsitorie', 'Finantare europeana', 'Mediu', 'Public', 'In proiectare'),
+
+('Scoala de soferi', 'Teleorman', 'Str. Mihai Viteazu nr. 12, Alexandria', '680.000 RON', 'Educatie', 'Amenajari', 'Amenajare scoala soferi in cladire P+1E existenta', 'finisaje interioare, pardoseli, corpuri de iluminat, vopsele, dotari didactice', 'Cladire preluata prin licitatie', 'Mic', 'Privat', 'In amenajare'),
+
+('Imobil rezidential', 'Ilfov', 'Str. Pacii nr. 34, Voluntari', '4.5 milioane RON', 'Rezidential', 'Cladiri', 'Bloc 2S+P+3E, 24 apartamente', 'executie, caramida, tamplarie, hidroizolatii, finisaje, termoizolatie', 'Garaj subteran 30 locuri', 'Mediu', 'Privat', 'In executie'),
+
+('Modernizare strada principala', 'Cluj', 'Strada Observatorului, Cluj-Napoca', '3.8 milioane RON', 'Infrastructura', 'Drumuri', 'Reabilitare strada 2.4 km, asfalt, borduri, trotuare, iluminat', 'asfalt, piatra sparta, borduri, pavele, iluminat public', 'Contract semnat cu Primaria Cluj', 'Mare', 'Public', 'In executie'),
+
+('Hala industriala', 'Brasov', 'Zona Industriala Bartolomeu, Brasov', '5.2 milioane RON', 'Industrial', 'Hale', 'Hala productie 4500 mp, inaltime 10m, pod rulant', 'structura metalica, panouri sandwich, fundatii speciale, instalatii industriale', 'Pod rulant 20 tone', 'Mare', 'Privat', 'In executie'),
+
+('Extindere spital judetean', 'Iasi', 'Str. Independentei nr. 1, Iasi', '28 milioane RON', 'Sanatate', 'Spitale', 'Corp nou S+P+4E, sectii chirurgie si ATI', 'beton, fier beton, caramida, tamplarie, instalatii medicale, lift, finisaje speciale', 'Finantare Ministerul Sanatatii', 'Mare', 'Public', 'In licitatie'),
+
+('Parcare supraterana', 'Constanta', 'Strada Soveja, Constanta', '6.5 milioane RON', 'Infrastructura', 'Parcari', 'Parcare 4 niveluri, 380 locuri', 'beton armat, rampe acces, sistem plata, supraveghere video, iluminat', 'Acces strada Soveja si Traian', 'Mare', 'Public', 'In proiectare'),
+
+('Vila duplex', 'Bucuresti', 'Str. Aviatorilor nr. 78, Sector 1', '1.8 milioane RON', 'Rezidential', 'Case', 'Vila duplex P+1+M, 2 unitati locative', 'beton, fier beton, caramida, tamplarie lemn stratificat, termosistem, finisaje premium', 'Teren 450 mp, arhitectura moderna', 'Mediu', 'Privat', 'In executie'),
+
+('Modernizare retea canalizare', 'Sibiu', 'Cartier Terezian, Sibiu', '4.2 milioane RON', 'Infrastructura', 'Canalizare', 'Inlocuire retea canalizare 6.8 km, statii pompare', 'tevi PVC, statii pompare, capace carosabile, excavatii', 'Proiect finalizat 70%', 'Mare', 'Public', 'In executie'),
+
+('Hotel 3 stele', 'Brasov', 'Strada Republicii nr. 45, Brasov', '8.5 milioane RON', 'Turism', 'Hoteluri', 'Hotel 80 camere, restaurant, sala conferinte', 'beton, fier beton, caramida, tamplarie, finisaje, instalatii HVAC, lift', 'Clasificare turistica in curs', 'Mare', 'Privat', 'In executie'),
+
+('Gradinita 4 grupe', 'Cluj', 'Str. Florilor nr. 23, Floresti', '2.9 milioane RON', 'Educatie', 'Gradinite', 'Gradinita P+1, 120 copii, curte 800 mp', 'beton, fier beton, caramida, tamplarie, termosistem, finisaje, dotari', 'Finantare buget local', 'Mediu', 'Public', 'In proiectare'),
+
+('Showroom auto', 'Bucuresti', 'Soseaua Pipera nr. 234, Sector 2', '3.5 milioane RON', 'Comercial', 'Showroom', 'Showroom cu service, P+1E, 1200 mp', 'structura metalica, fatada sticla, pardoseli industriale, instalatii', 'Brand premium auto', 'Mediu', 'Privat', 'In executie'),
+
+('Modernizare pod peste Olt', 'Valcea', 'DN7, km 189, Ramnicu Valcea', '15.8 milioane RON', 'Infrastructura', 'Poduri', 'Consolidare si reabilitare pod, lungime 280m', 'beton special, sisteme protectie anticoroziva, hidroizolatii pod, asfalt', 'Finantare CNAIR, trafic deviat', 'Mare', 'Public', 'In executie');

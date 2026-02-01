@@ -59,16 +59,11 @@ else
     echo "Database already initialized with $TABLE_COUNT tables"
 fi
 
-# Insert sample data if file exists and santiere table is empty
+# Insert sample data if file exists (will truncate and re-insert)
 if [ -f /var/www/html/sql/insert_sample_santiere.sql ]; then
-    SANTIERE_COUNT=$(mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "SELECT COUNT(*) FROM santiere;" 2>/dev/null | tail -n 1)
-    if [ "$SANTIERE_COUNT" -eq 0 ]; then
-        echo "Inserting sample construction sites..."
-        mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < /var/www/html/sql/insert_sample_santiere.sql
-        echo "Sample data inserted successfully!"
-    else
-        echo "Santiere table already has data ($SANTIERE_COUNT records), skipping sample insert"
-    fi
+    echo "Inserting sample construction sites..."
+    mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < /var/www/html/sql/insert_sample_santiere.sql
+    echo "Sample data inserted successfully!"
 fi
 
 echo "Database initialization complete!"
