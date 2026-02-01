@@ -3,7 +3,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install Apache and build tools for DBD::mysql
 RUN apt-get update \
-  && apt-get install -y apache2 libapache2-mod-perl2 default-libmysqlclient-dev build-essential cpanminus libssl-dev wget openssl \
+  && apt-get install -y apache2 libapache2-mod-perl2 default-libmysqlclient-dev build-essential cpanminus libssl-dev wget openssl mysql-client \
   && a2dismod mpm_event \
   && a2enmod mpm_prefork perl \
   && rm -rf /var/lib/apt/lists/*
@@ -22,7 +22,9 @@ RUN chown -R www-data:www-data /var/www/html /var/www/mason \
     && find /var/www/html -name "*.pl" -exec chmod +x {} \; \
     && mkdir -p /tmp/mason_data \
     && mkdir -p /var/www/html/logs \
-    && chown www-data:www-data /tmp/mason_data /var/www/html/logs
+    && chown www-data:www-data /tmp/mason_data /var/www/html/logs \
+    && chmod +x /var/www/html/docker/init-db.sh \
+    && chmod +x /var/www/html/docker/entrypoint.sh
 
 EXPOSE 80
-CMD ["apachectl", "-D", "FOREGROUND"]
+ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]

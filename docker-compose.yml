@@ -20,8 +20,10 @@ services:
   web:
     build: .
     depends_on:
-      - db
-      - mailhog
+      db:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
     environment:
       DB_HOST: db
       DB_NAME: myapp
