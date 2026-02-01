@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-# Only run database initialization if all DB variables are set
-if [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASS" ]; then
+# Only run database initialization if DB vars are set or MYSQL_URL is provided
+if [ -n "$MYSQL_URL" ] || { [ -n "$DB_HOST" ] && [ -n "$DB_NAME" ] && [ -n "$DB_USER" ] && [ -n "$DB_PASS" ]; }; then
     echo "Database credentials found, attempting initialization..."
     # Run database initialization script (but don't fail if it errors)
     /var/www/html/docker/init-db.sh || echo "Database initialization skipped or failed - may already be initialized"
