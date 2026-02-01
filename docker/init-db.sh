@@ -52,6 +52,13 @@ if [ "$TABLE_COUNT" -lt 2 ]; then
     if [ -f /var/www/html/sql/create_tables.sql ]; then
         mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < /var/www/html/sql/create_tables.sql
         echo "Database tables created successfully!"
+        
+        # Insert sample data if file exists
+        if [ -f /var/www/html/sql/insert_sample_santiere.sql ]; then
+            echo "Inserting sample construction sites..."
+            mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < /var/www/html/sql/insert_sample_santiere.sql
+            echo "Sample data inserted successfully!"
+        fi
     else
         echo "WARNING: create_tables.sql not found, skipping database initialization"
     fi
