@@ -19,6 +19,13 @@ our @EXPORT_OK = qw(
 my $MYSQL_URL = $ENV{MYSQL_URL} || $ENV{DATABASE_URL} || $ENV{MYSQL_PUBLIC_URL};
 my ($DB_HOST, $DB_NAME, $DB_USER, $DB_PASS, $DB_PORT);
 
+# Debug logging
+warn "DEBUG: MYSQL_URL = " . ($ENV{MYSQL_URL} || 'not set');
+warn "DEBUG: MYSQLHOST = " . ($ENV{MYSQLHOST} || 'not set');
+warn "DEBUG: MYSQLDATABASE = " . ($ENV{MYSQLDATABASE} || 'not set');
+warn "DEBUG: MYSQL_DATABASE = " . ($ENV{MYSQL_DATABASE} || 'not set');
+warn "DEBUG: RAILWAY_PRIVATE_DOMAIN = " . ($ENV{RAILWAY_PRIVATE_DOMAIN} || 'not set');
+
 if ($MYSQL_URL) {
   # Parse mysql://user:pass@host:port/database
   if ($MYSQL_URL =~ m|mysql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)|) {
@@ -27,6 +34,7 @@ if ($MYSQL_URL) {
     $DB_HOST = $3;
     $DB_PORT = $4 || 3306;
     $DB_NAME = $5;
+    warn "DEBUG: Parsed from MYSQL_URL - Host: $DB_HOST, Database: $DB_NAME, User: $DB_USER";
   }
 } else {
   # Railway-style separate env vars (or fallback to individual env vars)
@@ -35,6 +43,7 @@ if ($MYSQL_URL) {
   $DB_NAME = $ENV{MYSQLDATABASE} || $ENV{MYSQL_DATABASE} || $ENV{DB_NAME} || 'railway';
   $DB_USER = $ENV{MYSQLUSER} || $ENV{DB_USER} || 'root';
   $DB_PASS = $ENV{MYSQLPASSWORD} || $ENV{MYSQL_ROOT_PASSWORD} || $ENV{DB_PASS} || '';
+  warn "DEBUG: Using env vars - Host: $DB_HOST, Database: $DB_NAME, User: $DB_USER";
 }
 
 # SMTP configuration
