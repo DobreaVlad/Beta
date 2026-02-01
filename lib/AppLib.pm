@@ -19,6 +19,14 @@ our @EXPORT_OK = qw(
 my $MYSQL_URL = $ENV{MYSQL_URL} || $ENV{DATABASE_URL} || $ENV{MYSQL_PUBLIC_URL};
 my ($DB_HOST, $DB_NAME, $DB_USER, $DB_PASS, $DB_PORT);
 
+sub url_decode {
+    my ($value) = @_;
+    return '' unless defined $value;
+    $value =~ tr/+/ /;
+    $value =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+    return $value;
+}
+
 # Debug logging
 warn "DEBUG: MYSQL_URL = " . ($ENV{MYSQL_URL} || 'not set');
 warn "DEBUG: MYSQLHOST = " . ($ENV{MYSQLHOST} || 'not set');
@@ -29,11 +37,11 @@ warn "DEBUG: RAILWAY_PRIVATE_DOMAIN = " . ($ENV{RAILWAY_PRIVATE_DOMAIN} || 'not 
 if ($MYSQL_URL) {
   # Parse mysql://user:pass@host:port/database
   if ($MYSQL_URL =~ m|mysql://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/(.+)|) {
-    $DB_USER = $1;
-    $DB_PASS = $2;
+    $DB_USER = url_decode($1);
+    $DB_PASS = url_decode($2);
     $DB_HOST = $3;
     $DB_PORT = $4 || 3306;
-    $DB_NAME = $5;
+    $DB_NAME = url_decode($5);
     warn "DEBUG: Parsed from MYSQL_URL - Host: $DB_HOST, Database: $DB_NAME, User: $DB_USER";
   }
 } else {
