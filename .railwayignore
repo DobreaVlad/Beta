@@ -1,0 +1,43 @@
+# Railway Ignore File
+# Files and directories to exclude from Railway deployment
+
+# Documentation (not needed at runtime)
+*.md
+!README.md
+!RAILWAY_SETUP.md
+
+# Development files
+.env.example
+.gitignore
+docker-compose.yml
+
+# Local development
+logs/
+backups/
+
+# Docker development files (Railway uses Dockerfile directly)
+docker/nginx/
+docker/generate_certs.sh
+
+# Git
+.git/
+.gitattributes
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test/
+tests/
+*.test.pl
+
+# Old/deprecated files
+sql/migrate_to_production.sql

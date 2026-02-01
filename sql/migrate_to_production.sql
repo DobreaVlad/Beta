@@ -1,53 +1,13 @@
--- Migration script for production database
--- This script safely updates the database schema without losing data
+-- Database Migration Script
+-- This file is deprecated for Railway deployment
+-- For new Railway deployments, use create_tables.sql instead
+-- 
+-- This file is kept only for reference or manual migrations
+-- from old production environments
 
--- 1. Backup reminder
--- IMPORTANT: Always backup your database before running migrations!
--- mysqldump -u root -p datesantiere > backup_$(date +%Y%m%d_%H%M%S).sql
+-- For Railway: Simply run create_tables.sql on your Railway MySQL instance
+-- mysql -h <DB_HOST> -u root -p<DB_PASS> railway < sql/create_tables.sql
 
--- 2. Add new columns to santiere table if they don't exist
-ALTER TABLE santiere 
-ADD COLUMN IF NOT EXISTS subdomeniu VARCHAR(100) AFTER domeniu,
-ADD COLUMN IF NOT EXISTS solicitari TEXT AFTER descriere,
-ADD COLUMN IF NOT EXISTS observatii TEXT AFTER solicitari,
-ADD COLUMN IF NOT EXISTS dimensiune ENUM('Mic', 'Mediu', 'Mare') DEFAULT 'Mediu' AFTER observatii,
-ADD COLUMN IF NOT EXISTS sector ENUM('Public', 'Privat') DEFAULT 'Public' AFTER dimensiune,
-ADD COLUMN IF NOT EXISTS stadiu VARCHAR(100) AFTER sector;
-
--- 3. Add contact fields for Beneficiar
-ALTER TABLE santiere
-ADD COLUMN IF NOT EXISTS beneficiar_nume VARCHAR(255) AFTER stadiu,
-ADD COLUMN IF NOT EXISTS beneficiar_persoana VARCHAR(255) AFTER beneficiar_nume,
-ADD COLUMN IF NOT EXISTS beneficiar_contact VARCHAR(255) AFTER beneficiar_persoana,
-ADD COLUMN IF NOT EXISTS beneficiar_email VARCHAR(255) AFTER beneficiar_contact;
-
--- 4. Add contact fields for Antreprenor
-ALTER TABLE santiere
-ADD COLUMN IF NOT EXISTS antreprenor_nume VARCHAR(255) AFTER beneficiar_email,
-ADD COLUMN IF NOT EXISTS antreprenor_persoana VARCHAR(255) AFTER antreprenor_nume,
-ADD COLUMN IF NOT EXISTS antreprenor_contact VARCHAR(255) AFTER antreprenor_persoana,
-ADD COLUMN IF NOT EXISTS antreprenor_email VARCHAR(255) AFTER antreprenor_contact;
-
--- 5. Add contact fields for Proiectant
-ALTER TABLE santiere
-ADD COLUMN IF NOT EXISTS proiectant_nume VARCHAR(255) AFTER antreprenor_email,
-ADD COLUMN IF NOT EXISTS proiectant_persoana VARCHAR(255) AFTER proiectant_nume,
-ADD COLUMN IF NOT EXISTS proiectant_contact VARCHAR(255) AFTER proiectant_persoana,
-ADD COLUMN IF NOT EXISTS proiectant_email VARCHAR(255) AFTER proiectant_contact;
-
--- 6. Add updated_at timestamp if not exists
-ALTER TABLE santiere
-ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
-
--- 7. Add indexes for better performance
-ALTER TABLE santiere
-ADD INDEX IF NOT EXISTS idx_subdomeniu (subdomeniu),
-ADD INDEX IF NOT EXISTS idx_dimensiune (dimensiune),
-ADD INDEX IF NOT EXISTS idx_stadiu (stadiu);
-
--- 8. Add fulltext index for search functionality
-ALTER TABLE santiere
-ADD FULLTEXT INDEX IF NOT EXISTS idx_search (titlu, descriere, solicitari);
 
 -- 9. Create subscriptions table if not exists
 CREATE TABLE IF NOT EXISTS subscriptions (

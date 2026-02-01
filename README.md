@@ -1,86 +1,122 @@
 # Perl Website with Mason Templates
 
-A fresh setup for building a Perl website using Mason templating system, Apache with mod_perl, and MySQL.
+A Perl web application using Mason templating system, Apache with mod_perl, and MySQL.
+
+## Quick Deploy to Railway
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
+
+See [RAILWAY_SETUP.md](RAILWAY_SETUP.md) for detailed Railway deployment instructions.
 
 ## Project Structure
 
 Ready for your custom implementation using Mason templates.
 
+## Features
 
-SMTP & password reset
-- The registration flow now collects **email**; it's required for password resets.
-- Configure SMTP settings in `lib/Config.pm` (`$SMTP_HOST`, `$SMTP_PORT`, `$SMTP_USER`, `$SMTP_PASS`, `$SMTP_FROM`).
-- For local dev, leaving `$SMTP_HOST` empty or unset will show a dev reset link on the reset request page if sending fails.
+### User Authentication
+- Registration with email verification
+- Login/logout functionality
+- Password reset via email
+- Session management
 
-## Payment Integration (Stripe)
+### Payment Integration (Stripe)
+Full Stripe integration for subscription billing. See [STRIPE_INTEGRATION.md](STRIPE_INTEGRATION.md) for details.
 
-The site includes full integration with **Stripe** for subscription billing. See [STRIPE_INTEGRATION.md](STRIPE_INTEGRATION.md) for detailed documentation.
+### Email Configuration
+- SMTP configuration for email notifications
+- Password reset emails
+- For local development, emails can be tested with mailhog (in local Docker setup)
 
-**Quick Setup:**
-1. Sign up for a Stripe account at https://stripe.com/
-2. Get your API keys from the Stripe dashboard
-3. Copy `.env.example` to `.env` and add your credentials:
+## Deployment Options
+
+### Option 1: Railway (Recommended for Production)
+
+Railway provides easy deployment with automatic HTTPS and managed MySQL:
+
+1. Fork/clone this repository
+2. Create a Railway account
+3. Follow [RAILWAY_SETUP.md](RAILWAY_SETUP.md)
+4. Configure environment variables in Railway dashboard
+5. Deploy!
+
+### Option 2: Local Development with Docker
+
+For local testing and development:
+
+1. Copy environment file:
    ```bash
-   STRIPE_SECRET_KEY=sk_test_your_key
-   STRIPE_PUBLISHABLE_KEY=pk_test_your_key
-   STRIPE_WEBHOOK_SECRET=whsec_your_secret
-   APP_BASE_URL=http://localhost:8080
+   cp .env.example .env
    ```
-4. Run the updated SQL schema to create payment tables
-5. Restart the Docker containers
 
-**Payment Flow:**
-- Users select a plan from `/pricing/`
-- Checkout page creates subscription and payment records
-- User is redirected to Stripe's secure checkout page
-- After payment, user returns to confirmation page
-- Stripe sends payment status via webhook
-- Subscription is automatically activated on successful payment
+2. Edit `.env` with your local settings
 
-Setup
-1. Install Perl (Strawberry Perl on Windows is easiest) and these modules (CPAN):
-   - DBI
-   - DBD::mysql
-   - Digest::SHA
-   - MIME::Base64
-   - Authen::Passphrase::BlowfishCrypt   # for bcrypt password hashing
-   - HTTP::Server::Simple::CGI          # for running the dev server
+3. Start services:
+   ```bash
+   docker-compose up --build
+   ```
 
-   Example (Strawberry Perl):
-     cpan DBI DBD::mysql Digest::SHA MIME::Base64 Authen::Passphrase::BlowfishCrypt HTTP::Server::Simple::CGI
+Access the application at http://localhost:80
 
-2. Create a MySQL database and run `sql/create_tables.sql`.
-3. Edit `lib/Config.pm` and set `$DB_NAME`, `$DB_USER`, `$DB_PASS` to match your DB, or use Docker (recommended).
+Note: The simplified docker-compose.yml is optimized for Railway. For full local development with mailhog and adminer, you may want to add those services back.
 
-Docker (production-like) setup (recommended)
-1. Generate self-signed certs for nginx (dev only):
-   - `sh docker/generate_certs.sh`
-2. Build and start services:
-   - `docker-compose up --build`
+## Environment Variables
 
-Services included in Docker Compose:
-- `db` — MySQL 8.0 (accessible to the `web` service)
-- `web` — Apache + Perl, serves your CGI scripts on port `8080` by default
-- `mailhog` — captures outgoing emails (SMTP on 1025; UI on http://localhost:8025)
-- `nginx` — reverse proxy with HTTPS (self-signed certs; HTTPS on `8443` and HTTP on `80`)
+Required for both Railway and local deployment:
 
-Accessing the site:
-- HTTP: http://localhost:8080/ (direct to Apache)
-- HTTPS through nginx: https://localhost:8443/ (accept the self-signed cert in your browser)
+```bash
+# Database
+DB_HOST=<your-db-host>
+DB_NAME=railway
+DB_USER=root
+DB_PASS=<your-db-password>
 
-Notes:
-- The web container reads DB and SMTP configuration from environment variables (set in `docker-compose.yml` or via an `.env` file).
-- After containers are up, run the DB migration: `docker exec -it <compose_project>_db_1 mysql -u root -p myapp < sql/create_tables.sql` (use the root password set in `docker-compose.yml`).
+# Email
+SMTP_HOST=<your-smtp-host>
+SMTP_PORT=587
+SMTP_FROM=noreply@yourdomain.com
 
-WSL: install Docker Engine inside your distro (optional)
-- A helper script is provided at `scripts/install-docker-wsl.sh` to install Docker Engine and the Compose plugin inside an Ubuntu-based WSL distro.
-- Usage (from inside WSL):
-  1. `bash scripts/install-docker-wsl.sh`
-  2. Log out and back in (or run `newgrp docker`) so your user is in the `docker` group.
-  3. Verify: `docker version` and `docker compose version`.
-- Note: many users prefer Docker Desktop for Windows + WSL integration because it manages the Docker daemon for you and provides an easier experience. If you encounter daemon/startup issues inside WSL, consider using Docker Desktop instead.
+# Application
+APP_ENV=production
+APP_BASE_URL=https://your-app.railway.app
 
-Security notes
-- This is a minimal example. For production, use HTTPS, stronger session management, CSRF protection, rate-limits, and more secure password hashing (e.g., Argon2 or bcrypt via modules).
+# Stripe
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+## Database Setup
+
+Initialize the database with:
+```bash
+mysql -h <DB_HOST> -u root -p railway < sql/create_tables.sql
+```
+
+On Railway, use the MySQL plugin interface or connect via CLI.
+
+## Documentation
+
+- [RAILWAY_SETUP.md](RAILWAY_SETUP.md) - Quick Railway deployment guide
+- [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) - Detailed deployment instructions
+- [STRIPE_INTEGRATION.md](STRIPE_INTEGRATION.md) - Payment integration documentation
+- [STRIPE_SETUP_GUIDE.md](STRIPE_SETUP_GUIDE.md) - Stripe configuration guide
+
+## Security Notes
+
+For production deployments:
+- Use strong database passwords
+- Keep environment variables secure (never commit to git)
+- Enable HTTPS (Railway provides this automatically)
+- Configure CSRF protection
+- Implement rate limiting for API endpoints
+- Use production Stripe keys (not test keys)
+
+## Support
+
+For issues or questions:
+- Check existing documentation files
+- Review Railway logs in the dashboard
+- Test locally with Docker first
 
 Enjoy! ✨

@@ -1,203 +1,127 @@
-# Ghid de Deployment în Producție
+# Railway Deployment Guide
 
-## Pregătire înainte de deployment
+## Prerequisites
 
-### 1. Backup Bază de Date
-**OBLIGATORIU** - Creează backup complet al bazei de date de producție:
+1. Railway account (https://railway.app)
+2. GitHub repository with your code
+3. MySQL database credentials (from Railway MySQL plugin)
+4. SMTP service credentials (SendGrid, Mailgun, or similar)
+5. Stripe API keys (for payments)
 
+## Step-by-Step Deployment
+
+### 1. Prepare Your Repository
+
+Ensure all files are committed to your GitHub repository:
 ```bash
-# Pe serverul de producție
-mysqldump -u root -p datesantiere > backup_$(date +%Y%m%d_%H%M%S).sql
-
-# Sau prin Docker
-docker exec mysql_container mysqldump -u root -p datesantiere > backup_$(date +%Y%m%d_%H%M%S).sql
+git add .
+git commit -m "Prepare for Railway deployment"
+git push origin main
 ```
 
-### 2. Verificare fișiere necesare
-Asigură-te că ai următoarele fișiere actualizate:
-- `sql/migrate_to_production.sql` - script de migrare
-- `sql/create_tables.sql` - schema completă (pentru instalări noi)
-- `docker-compose.yml`
-- `Dockerfile`
-- Toate fișierele Mason actualizate
+### 2. Create Railway Project
 
-## Procedura de Deployment
+1. Go to https://railway.app
+2. Click "New Project"
+3. Select "Deploy from GitHub repo"
+4. Choose your repository
+5. Railway will automatically detect the Dockerfile
 
-### Opțiunea A: Migrare pe server existent (RECOMANDAT)
+### 3. Add MySQL Database
 
-#### 1. Upload fișiere pe server
-```bash
-# Transferă fișierele actualizate
-scp -r ./mason user@server:/var/www/html/
-scp -r ./public user@server:/var/www/html/
-scp -r ./lib user@server:/var/www/html/
-scp ./sql/migrate_to_production.sql user@server:/tmp/
+1. In your Railway project, click "+ New"
+2. Select "Database" → "Add MySQL"
+3. Railway will create a MySQL instance
+4. Note the connection details from the "Variables" tab
+
+### 4. Configure Environment Variables
+
+In Railway dashboard, go to your web service → Variables tab and add:
+
 ```
-
-#### 2. Rulează migrarea bazei de date
-```bash
-# Conectează-te la server
-ssh user@server
-
-# Rulează scriptul de migrare
-mysql -u root -p datesantiere < /tmp/migrate_to_production.sql
-```
-
-#### 3. Restart servicii
-```bash
-# Restart Apache/mod_perl
-sudo systemctl restart apache2
-
-# Sau dacă folosești Docker
-docker-compose restart web
-```
-
-#### 4. Verificare
-```bash
-# Testează conexiunea la baza de date
-mysql -u root -p -e "USE datesantiere; SHOW TABLES; DESCRIBE santiere;"
-
-# Verifică site-ul în browser
-curl http://your-domain.com
-```
-
-### Opțiunea B: Deployment Docker complet
-
-#### 1. Pe serverul de producție
-```bash
-# Clone sau pull ultimele modificări
-git pull origin main
-
-# Sau upload manual toate fișierele
-scp -r ./Beta user@server:/path/to/project/
-```
-
-#### 2. Oprește containerele existente (dacă există)
-```bash
-docker-compose down
-```
-
-#### 3. Backup volumele Docker
-```bash
-docker run --rm -v beta_db_data:/data -v $(pwd):/backup ubuntu tar czf /backup/db_backup_$(date +%Y%m%d).tar.gz /data
-```
-
-#### 4. Rulează migrarea
-```bash
-# Pornește doar MySQL
-docker-compose up -d db
-
-# Așteaptă 10 secunde pentru inițializare
-sleep 10
-
-# Rulează migrarea
-docker exec -i beta_db mysql -u root -proot datesantiere < sql/migrate_to_production.sql
-```
-
-#### 5. Pornește toate serviciile
-```bash
-docker-compose up -d
-```
-
-#### 6. Verifică logs
-```bash
-docker-compose logs -f
-```
-
-## Verificări Post-Deployment
-
-### 1. Verificare Bază de Date
-```sql
--- Conectează-te la MySQL
-mysql -u root -p datesantiere
-
--- Verifică structura tabelelor
-SHOW TABLES;
-DESCRIBE santiere;
-DESCRIBE subscriptions;
-DESCRIBE payments;
-
--- Verifică datele existente
-SELECT COUNT(*) FROM santiere;
-SELECT COUNT(*) FROM users;
-```
-
-### 2. Verificare Funcționalitate Site
-
-- [ ] Pagina principală se încarcă: `http://your-domain.com`
-- [ ] Pagina santiere: `http://your-domain.com/projects/`
-- [ ] Funcționează filtrele și căutarea
-- [ ] Sortarea funcționează corect
-- [ ] Tag-urile pentru filtre apar când sunt active
-- [ ] Login/Register funcționează
-- [ ] Panoul admin funcționează: `http://your-domain.com/admin/`
-- [ ] Adăugare/editare santiere funcționează
-
-### 3. Test Filtre și Sortare
-```
-1. Accesează /projects/
-2. Aplică un filtru (județ, domeniu, etc.)
-3. Verifică că tag-urile apar sub numărul de rezultate
-4. Click pe X pentru a șterge un filtru
-5. Click pe headerele tabelului pentru sortare (în admin)
-6. Verifică că sortarea funcționează corect
-```
-
-## Rollback în caz de probleme
-
-### 1. Rollback Bază de Date
-```bash
-# Restaurează backup-ul
-mysql -u root -p datesantiere < backup_YYYYMMDD_HHMMSS.sql
-```
-
-### 2. Rollback Fișiere
-```bash
-# Restaurează versiunea anterioară din Git
-git checkout HEAD~1
-docker-compose restart
-```
-
-### 3. Rollback Docker complet
-```bash
-# Oprește containerele
-docker-compose down
-
-# Restaurează volumul bazei de date
-docker run --rm -v beta_db_data:/data -v $(pwd):/backup ubuntu tar xzf /backup/db_backup_YYYYMMDD.tar.gz -C /
-
-# Repornește cu versiunea veche
-docker-compose up -d
-```
-
-## Configurare Variabile de Mediu (Producție)
-
-### 1. Actualizează docker-compose.yml pentru producție
-```yaml
-version: '3.8'
-services:
-  db:
-    environment:
-      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-      - MYSQL_DATABASE=${DB_NAME}
-  
-  web:
-    environment:
-      - DB_HOST=db
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASSWORD}
-      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
-      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
-```
-
-### 2. Creează fișier .env
-```bash
-cat > .env << EOF
-DB_ROOT_PASSWORD=your_secure_password
-DB_NAME=datesantiere
+DB_HOST=<from MySQL plugin>
+DB_NAME=railway
 DB_USER=root
-DB_PASSWORD=your_secure_password
+DB_PASS=<from MySQL plugin>
+SMTP_HOST=smtp.sendgrid.net
+SMTP_PORT=587
+SMTP_FROM=noreply@yourdomain.com
+APP_ENV=production
+APP_BASE_URL=https://your-app.railway.app
+STRIPE_SECRET_KEY=sk_live_your_key
+STRIPE_PUBLISHABLE_KEY=pk_live_your_key
+STRIPE_WEBHOOK_SECRET=whsec_your_secret
+PORT=80
+```
+
+### 5. Initialize Database
+
+After first deployment, connect to your MySQL database and run:
+```sql
+-- Use Railway's MySQL connection details
+mysql -h <DB_HOST> -u root -p<DB_PASS> railway < sql/create_tables.sql
+```
+
+Or use Railway's MySQL plugin interface to execute the SQL file.
+
+### 6. Deploy
+
+Railway will automatically deploy on every push to your main branch.
+Monitor the deployment logs in the Railway dashboard.
+
+### 7. Verify Deployment
+
+Visit your Railway app URL and check:
+- [ ] Homepage loads correctly
+- [ ] Database connection works
+- [ ] Projects page displays
+- [ ] Login/Register functionality works
+- [ ] Admin panel is accessible
+
+### 8. Configure Custom Domain (Optional)
+
+1. In Railway dashboard, go to Settings → Domains
+2. Add your custom domain
+3. Update DNS records as instructed
+4. Update `APP_BASE_URL` environment variable
+
+## Troubleshooting
+
+### Check Logs
+```bash
+# In Railway dashboard, go to Deployments → View Logs
+```
+
+### Database Connection Issues
+- Verify DB_HOST, DB_USER, DB_PASS are correct
+- Ensure MySQL plugin is running
+- Check if create_tables.sql was executed
+
+### Application Not Starting
+- Check build logs for errors
+- Verify PORT is set (Railway usually handles this automatically)
+- Check Dockerfile is present in repository root
+
+## Local Development
+
+For local testing before Railway deployment:
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your local settings
+# Then build and test locally
+./deploy.sh
+```
+
+## Important Notes
+
+- Railway automatically redeploys on git push
+- Database credentials are available in MySQL plugin variables
+- Use Railway's provided PORT variable (default: 80 in our setup)
+- Monitor deployment logs for any errors
+- Keep sensitive keys secure in Railway dashboard, not in code
 STRIPE_SECRET_KEY=sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 EOF

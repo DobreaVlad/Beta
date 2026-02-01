@@ -1,76 +1,19 @@
 services:
-  db:
-    image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-example}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-myapp}
-      MYSQL_USER: ${MYSQL_USER:-app}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-apppass}
-    volumes:
-      - db_data:/var/lib/mysql
-      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/01-create_tables.sql
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   web:
     build: .
-    depends_on:
-      db:
-        condition: service_healthy
-      mailhog:
-        condition: service_started
     environment:
-      DB_HOST: db
-      DB_NAME: ${MYSQL_DATABASE:-myapp}
-      DB_USER: ${MYSQL_USER:-app}
-      DB_PASS: ${MYSQL_PASSWORD:-apppass}
-      SMTP_HOST: ${SMTP_HOST:-mailhog}
-      SMTP_PORT: ${SMTP_PORT:-1025}
-      SMTP_FROM: ${SMTP_FROM:-no-reply@local.test}
-      APP_ENV: ${APP_ENV:-dev}
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_FROM: ${SMTP_FROM}
+      APP_ENV: ${APP_ENV:-production}
       MASON_STATIC: "0"
-      # Stripe Payment Configuration
-      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
-      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-}
-      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
-      APP_BASE_URL: ${APP_BASE_URL:-http://localhost:8080}
-    volumes:
-      - ./:/var/www/html:cached
-      - ./mason:/var/www/mason:cached
-      - ./docker/apache/000-default.conf:/etc/apache2/sites-available/000-default.conf:ro
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET}
+      APP_BASE_URL: ${APP_BASE_URL}
     ports:
-      - "8080:80"
-
-  mailhog:
-    image: mailhog/mailhog
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-
-  nginx:
-    image: nginx:stable
-    depends_on:
-      - web
-    volumes:
-      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./docker/nginx/certs:/etc/nginx/certs:ro
-    ports:
-      - "80:80"
-      - "8443:8443"
-
-  adminer:
-    image: adminer:latest
-    depends_on:
-      - db
-    environment:
-      ADMINER_DEFAULT_SERVER: db
-    ports:
-      - "8081:8080"
-
-volumes:
-  db_data:
+      - "${PORT:-80}:80"
