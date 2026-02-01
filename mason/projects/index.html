@@ -336,12 +336,26 @@ $url_remove_sector .= "sort=$sort";
             </div>
 % if ($santier->{solicitari}) {
             <div class="project-requests">
-              <strong>Solicitari:</strong> <% $santier->{solicitari} %>
+              <strong>Solicitari:</strong>
+              <div class="request-tags">
+<%perl>
+my @tags = split(/\s*,\s*/, $santier->{solicitari});
+foreach my $tag (@tags) {
+  $tag =~ s/^\s+|\s+$//g; # trim whitespace
+</%perl>
+                <span class="request-tag"><% $tag %></span>
+<%perl>
+}
+</%perl>
+              </div>
             </div>
 % }
             <div class="project-footer">
               <span class="project-date"><% format_date_ro($santier->{created_at}) %></span>
-              <button class="btn-view-details" onclick="openSantierModal(<% $santier->{id} %>)">Vezi detalii</button>
+<%perl>
+my $judet_upper = uc($santier->{judet} || '');
+</%perl>
+              <button class="btn-view-details" onclick="openSantierModal(<% $santier->{id} %>, '<% $judet_upper %>')">Vezi detalii</button>
             </div>
           </div>
 % }
@@ -374,48 +388,7 @@ $url_remove_sector .= "sort=$sort";
 </div>
 
 <script>
-function openSantierModal(id) {
-  const modal = document.getElementById('santierModal');
-  const content = document.getElementById('santierModalContent');
-  
-  modal.classList.add('active');
-  document.body.style.overflow = 'hidden';
-  
-  content.innerHTML = '<div class="loading">Se incarca...</div>';
-  
-  fetch('/projects/view_ajax.html?id=' + id)
-    .then(response => response.text())
-    .then(html => {
-      content.innerHTML = html;
-    })
-    .catch(error => {
-      content.innerHTML = '<div class="error">Eroare la incarcarea datelor</div>';
-    });
-}
-
-function closeSantierModal() {
-  const modal = document.getElementById('santierModal');
-  modal.classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-// Close modal on ESC key
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') {
-    closeSantierModal();
-  }
-});
-
-// Initialize Leaflet map
-const map = L.map('map').setView([45.9, 25.0], 6);
-
-// Add OpenStreetMap tile layer
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  maxZoom: 19
-}).addTo(map);
-
-// Romania county coordinates (approximate centers)
+// County coordinates for map centering
 const countyCoords = {
   'ALBA': [46.0667, 23.5833],
   'ARAD': [46.1667, 21.3167],
@@ -461,6 +434,45 @@ const countyCoords = {
   'VRANCEA': [45.7, 27.1833]
 };
 
+function openSantierModal(id, judet) {
+  const modal = document.getElementById('santierModal');
+  const content = document.getElementById('santierModalContent');
+  
+  modal.classList.add('active');
+  
+  content.innerHTML = '<div class="loading">Se incarca...</div>';
+  
+  fetch('/projects/view_ajax.html?id=' + id)
+    .then(response => response.text())
+    .then(html => {
+      content.innerHTML = html;
+    })
+    .catch(error => {
+      content.innerHTML = '<div class="error">Eroare la incarcarea datelor</div>';
+    });
+}
+
+function closeSantierModal() {
+  const modal = document.getElementById('santierModal');
+  modal.classList.remove('active');
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    closeSantierModal();
+  }
+});
+
+// Initialize Leaflet map
+const map = L.map('map').setView([45.9, 25.0], 6);
+
+// Add OpenStreetMap tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19
+}).addTo(map);
+
 // Add markers for santiere
 % foreach my $santier (@santiere) {
 %   if ($santier->{judet}) {
@@ -477,7 +489,7 @@ my $judet_upper = uc($santier->{judet});
         <p style="margin: 4px 0; font-size: 12px;"><strong>Judet:</strong> <% $santier->{judet} %></p>
         <p style="margin: 4px 0; font-size: 12px;"><strong>Valoare:</strong> <% $santier->{valoare} || 'N/A' %></p>
         <p style="margin: 4px 0; font-size: 12px;"><strong>Domeniu:</strong> <% $santier->{domeniu} || 'N/A' %></p>
-        <button onclick="openSantierModal(<% $santier->{id} %>)" style="display: inline-block; margin-top: 8px; padding: 4px 12px; background: #f59e0b; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">Vezi detalii</button>
+        <button onclick="openSantierModal(<% $santier->{id} %>, '<% $judet_upper %>')" style="display: inline-block; margin-top: 8px; padding: 4px 12px; background: #3b82f6; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">Vezi detalii</button>
       </div>
     `);
   }

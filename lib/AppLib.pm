@@ -16,7 +16,7 @@ our @EXPORT_OK = qw(
 );
 
 # Database configuration
-my $MYSQL_URL = $ENV{MYSQL_URL} || $ENV{DATABASE_URL};
+my $MYSQL_URL = $ENV{MYSQL_URL} || $ENV{DATABASE_URL} || $ENV{MYSQL_PUBLIC_URL};
 my ($DB_HOST, $DB_NAME, $DB_USER, $DB_PASS, $DB_PORT);
 
 if ($MYSQL_URL) {
@@ -30,11 +30,11 @@ if ($MYSQL_URL) {
   }
 } else {
   # Railway-style separate env vars (or fallback to individual env vars)
-  $DB_HOST = $ENV{MYSQLHOST} || $ENV{DB_HOST} || 'db';
+  $DB_HOST = $ENV{MYSQLHOST} || $ENV{DB_HOST} || 'localhost';
   $DB_PORT = $ENV{MYSQLPORT} || $ENV{DB_PORT} || 3306;
-  $DB_NAME = $ENV{MYSQLDATABASE} || $ENV{DB_NAME} || 'myapp';
+  $DB_NAME = $ENV{MYSQLDATABASE} || $ENV{MYSQL_DATABASE} || $ENV{DB_NAME} || 'railway';
   $DB_USER = $ENV{MYSQLUSER} || $ENV{DB_USER} || 'root';
-  $DB_PASS = $ENV{MYSQLPASSWORD} || $ENV{DB_PASS} || '';
+  $DB_PASS = $ENV{MYSQLPASSWORD} || $ENV{MYSQL_ROOT_PASSWORD} || $ENV{DB_PASS} || '';
 }
 
 # SMTP configuration
