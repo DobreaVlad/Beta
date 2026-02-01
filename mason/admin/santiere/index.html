@@ -129,11 +129,7 @@ $url_remove_domeniu .= "sort=$sort&order=$order";
       <p>Total: <strong><% $total %></strong> santiere</p>
     </div>
 
-<% "<!-- DEBUG: search='$search' judet='$judet' domeniu='$domeniu' -->" %>
-% if ($search || $judet || $domeniu) {
-<% "<!-- DEBUG: Showing filters -->" %>
     <div class="active-filters">
-      <span class="filter-label">Filtre active:</span>
 %   if ($search) {
       <span class="filter-tag">
         Cautare: "<% $search %>"
@@ -152,9 +148,7 @@ $url_remove_domeniu .= "sort=$sort&order=$order";
         <a href="<% $url_remove_domeniu %>" class="filter-remove" title="Sterge filtru">×</a>
       </span>
 %   }
-      <a href="?sort=<% $sort %>&order=<% $order %>" class="clear-all-filters">Sterge toate filtrele</a>
     </div>
-% }
 
     <div class="admin-table-container">
       <table class="admin-table">

@@ -16,8 +16,8 @@ our @EXPORT_OK = qw(
 );
 
 # Database configuration
-my $MYSQL_URL = $ENV{MYSQL_URL};
-my ($DB_HOST, $DB_NAME, $DB_USER, $DB_PASS);
+my $MYSQL_URL = $ENV{MYSQL_URL} || $ENV{DATABASE_URL};
+my ($DB_HOST, $DB_NAME, $DB_USER, $DB_PASS, $DB_PORT);
 
 if ($MYSQL_URL) {
   # Parse mysql://user:pass@host:port/database
@@ -25,14 +25,16 @@ if ($MYSQL_URL) {
     $DB_USER = $1;
     $DB_PASS = $2;
     $DB_HOST = $3;
+    $DB_PORT = $4 || 3306;
     $DB_NAME = $5;
   }
 } else {
-  # Fallback to individual env vars (for local dev)
-  $DB_HOST = $ENV{DB_HOST} || 'db';
-  $DB_NAME = $ENV{DB_NAME} || 'myapp';
-  $DB_USER = $ENV{DB_USER} || 'root';
-  $DB_PASS = $ENV{DB_PASS} || '';
+  # Railway-style separate env vars (or fallback to individual env vars)
+  $DB_HOST = $ENV{MYSQLHOST} || $ENV{DB_HOST} || 'db';
+  $DB_PORT = $ENV{MYSQLPORT} || $ENV{DB_PORT} || 3306;
+  $DB_NAME = $ENV{MYSQLDATABASE} || $ENV{DB_NAME} || 'myapp';
+  $DB_USER = $ENV{MYSQLUSER} || $ENV{DB_USER} || 'root';
+  $DB_PASS = $ENV{MYSQLPASSWORD} || $ENV{DB_PASS} || '';
 }
 
 # SMTP configuration
@@ -46,12 +48,13 @@ my $STRIPE_PUBLISHABLE_KEY = $ENV{STRIPE_PUBLISHABLE_KEY} || '';
 my $STRIPE_WEBHOOK_SECRET = $ENV{STRIPE_WEBHOOK_SECRET} || '';
 
 sub dbh {
+    my $dsn = "DBI:mysql:database=$DB_NAME;host=$DB_HOST;port=$DB_PORT";
     return DBI->connect(
-        "DBI:mysql:database=$DB_NAME;host=$DB_HOST",
+        $dsn,
         $DB_USER,
         $DB_PASS,
         { RaiseError => 1, AutoCommit => 1, mysql_enable_utf8 => 1 }
-    );
+    ) or die "Cannot connect to database: $DBI::errstr\nDSN: $dsn\nUser: $DB_USER";
 }
 
 sub hash_password {

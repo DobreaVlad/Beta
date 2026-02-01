@@ -86,6 +86,70 @@ my $judete = $dbh->selectcol_arrayref("SELECT DISTINCT judet FROM santiere WHERE
 my $domenii = $dbh->selectcol_arrayref("SELECT DISTINCT domeniu FROM santiere WHERE domeniu IS NOT NULL ORDER BY domeniu");
 my $subdomenii = $dbh->selectcol_arrayref("SELECT DISTINCT subdomeniu FROM santiere WHERE subdomeniu IS NOT NULL ORDER BY subdomeniu");
 my $stadii = $dbh->selectcol_arrayref("SELECT DISTINCT stadiu FROM santiere WHERE stadiu IS NOT NULL ORDER BY stadiu");
+
+# Build URLs for removing filters
+my $url_remove_search = "?";
+$url_remove_search .= "judet=$judet&" if $judet;
+$url_remove_search .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_search .= "subdomeniu=$subdomeniu&" if $subdomeniu;
+$url_remove_search .= "dimensiune=$dimensiune&" if $dimensiune;
+$url_remove_search .= "stadiu=$stadiu&" if $stadiu;
+$url_remove_search .= "sector=$sector&" if $sector;
+$url_remove_search .= "sort=$sort";
+
+my $url_remove_judet = "?";
+$url_remove_judet .= "search=$search&" if $search;
+$url_remove_judet .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_judet .= "subdomeniu=$subdomeniu&" if $subdomeniu;
+$url_remove_judet .= "dimensiune=$dimensiune&" if $dimensiune;
+$url_remove_judet .= "stadiu=$stadiu&" if $stadiu;
+$url_remove_judet .= "sector=$sector&" if $sector;
+$url_remove_judet .= "sort=$sort";
+
+my $url_remove_domeniu = "?";
+$url_remove_domeniu .= "search=$search&" if $search;
+$url_remove_domeniu .= "judet=$judet&" if $judet;
+$url_remove_domeniu .= "subdomeniu=$subdomeniu&" if $subdomeniu;
+$url_remove_domeniu .= "dimensiune=$dimensiune&" if $dimensiune;
+$url_remove_domeniu .= "stadiu=$stadiu&" if $stadiu;
+$url_remove_domeniu .= "sector=$sector&" if $sector;
+$url_remove_domeniu .= "sort=$sort";
+
+my $url_remove_subdomeniu = "?";
+$url_remove_subdomeniu .= "search=$search&" if $search;
+$url_remove_subdomeniu .= "judet=$judet&" if $judet;
+$url_remove_subdomeniu .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_subdomeniu .= "dimensiune=$dimensiune&" if $dimensiune;
+$url_remove_subdomeniu .= "stadiu=$stadiu&" if $stadiu;
+$url_remove_subdomeniu .= "sector=$sector&" if $sector;
+$url_remove_subdomeniu .= "sort=$sort";
+
+my $url_remove_dimensiune = "?";
+$url_remove_dimensiune .= "search=$search&" if $search;
+$url_remove_dimensiune .= "judet=$judet&" if $judet;
+$url_remove_dimensiune .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_dimensiune .= "subdomeniu=$subdomeniu&" if $subdomeniu;
+$url_remove_dimensiune .= "stadiu=$stadiu&" if $stadiu;
+$url_remove_dimensiune .= "sector=$sector&" if $sector;
+$url_remove_dimensiune .= "sort=$sort";
+
+my $url_remove_stadiu = "?";
+$url_remove_stadiu .= "search=$search&" if $search;
+$url_remove_stadiu .= "judet=$judet&" if $judet;
+$url_remove_stadiu .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_stadiu .= "subdomeniu=$subdomeniu&" if $subdomeniu;
+$url_remove_stadiu .= "dimensiune=$dimensiune&" if $dimensiune;
+$url_remove_stadiu .= "sector=$sector&" if $sector;
+$url_remove_stadiu .= "sort=$sort";
+
+my $url_remove_sector = "?";
+$url_remove_sector .= "search=$search&" if $search;
+$url_remove_sector .= "judet=$judet&" if $judet;
+$url_remove_sector .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_sector .= "subdomeniu=$subdomeniu&" if $subdomeniu;
+$url_remove_sector .= "dimensiune=$dimensiune&" if $dimensiune;
+$url_remove_sector .= "stadiu=$stadiu&" if $stadiu;
+$url_remove_sector .= "sort=$sort";
 </%init>
 <!DOCTYPE html>
 <html lang="ro">
@@ -205,6 +269,53 @@ my $stadii = $dbh->selectcol_arrayref("SELECT DISTINCT stadiu FROM santiere WHER
             </select>
           </div>
         </div>
+
+% if ($search || $judet || $domeniu || $subdomeniu || $dimensiune || $stadiu || $sector) {
+        <div class="active-filters">
+%   if ($search) {
+          <span class="filter-tag">
+            Cautare: "<% $search %>"
+            <a href="<% $url_remove_search %>" class="filter-remove" title="Sterge filtru">×</a>
+          </span>
+%   }
+%   if ($judet) {
+          <span class="filter-tag">
+            Judet: <% $judet %>
+            <a href="<% $url_remove_judet %>" class="filter-remove" title="Sterge filtru">×</a>
+          </span>
+%   }
+%   if ($domeniu) {
+          <span class="filter-tag">
+            Domeniu: <% $domeniu %>
+            <a href="<% $url_remove_domeniu %>" class="filter-remove" title="Sterge filtru">×</a>
+          </span>
+%   }
+%   if ($subdomeniu) {
+          <span class="filter-tag">
+            Subdomeniu: <% $subdomeniu %>
+            <a href="<% $url_remove_subdomeniu %>" class="filter-remove" title="Sterge filtru">×</a>
+          </span>
+%   }
+%   if ($dimensiune) {
+          <span class="filter-tag">
+            Dimensiune: <% $dimensiune %>
+            <a href="<% $url_remove_dimensiune %>" class="filter-remove" title="Sterge filtru">×</a>
+          </span>
+%   }
+%   if ($stadiu) {
+          <span class="filter-tag">
+            Stadiu: <% $stadiu %>
+            <a href="<% $url_remove_stadiu %>" class="filter-remove" title="Sterge filtru">×</a>
+          </span>
+%   }
+%   if ($sector) {
+          <span class="filter-tag">
+            Sector: <% $sector %>
+            <a href="<% $url_remove_sector %>" class="filter-remove" title="Sterge filtru">×</a>
+          </span>
+%   }
+        </div>
+% }
 
 % if (@santiere) {
         <div class="projects-grid">
