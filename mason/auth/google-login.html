@@ -1,0 +1,52 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(dbh create_session);
+use CGI qw(:standard);
+use JSON;
+use LWP::UserAgent;
+
+my $q = CGI->new;
+
+if ($q->request_method eq 'POST') {
+    my $credential = $q->param('credential') || '';
+    
+    if ($credential) {
+        # Verify Google JWT token
+        my $ua = LWP::UserAgent->new;
+        my $response = $ua->get("https://oauth2.googleapis.com/tokeninfo?id_token=$credential");
+        
+        if ($response->is_success) {
+            my $user_info = decode_json($response->decoded_content);
+            my $email = $user_info->{email};
+            my $name = $user_info->{name};
+            my $google_id = $user_info->{sub};
+            
+            # Check if user exists
+            my $dbh = dbh();
+            my $sth = $dbh->prepare('SELECT id FROM users WHERE email = ? OR google_id = ?');
+            $sth->execute($email, $google_id);
+            my $user = $sth->fetchrow_hashref;
+            
+            if ($user) {
+                # User exists, login
+                my $session_id = create_session($user->{id});
+                my $cookie = $q->cookie(-name => 'SESSION', -value => $session_id, -path => '/', -expires => '+7d', -httponly => 1);
+                print $q->redirect(-uri => '/', -cookie => $cookie);
+            } else {
+                # Create new user
+                $sth = $dbh->prepare('INSERT INTO users (name, email, google_id, created_at) VALUES (?, ?, ?, NOW())');
+                $sth->execute($name, $email, $google_id);
+                my $user_id = $dbh->last_insert_id(undef, undef, 'users', 'id');
+                
+                my $session_id = create_session($user_id);
+                my $cookie = $q->cookie(-name => 'SESSION', -value => $session_id, -path => '/', -expires => '+7d', -httponly => 1);
+                print $q->redirect(-uri => '/', -cookie => $cookie);
+            }
+            $m->abort();
+        }
+    }
+}
+
+print $q->header(-type => 'application/json', -status => '400 Bad Request');
+print encode_json({ error => 'Invalid credentials' });
+</%init>

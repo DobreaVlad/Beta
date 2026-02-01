@@ -1,0 +1,293 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie param);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+if (!$user || !$user->{is_admin}) {
+  print $q->redirect('/');
+  $m->abort();
+}
+
+my $santier_id = $q->param('id') || '';
+my $santier = {};
+my $error = '';
+my $success = '';
+
+my $dbh = dbh();
+
+# Load existing santier
+if ($santier_id) {
+    eval {
+        my $sql = "SELECT * FROM santiere WHERE id = ?";
+        my $sth = $dbh->prepare($sql);
+        $sth->execute($santier_id);
+        $santier = $sth->fetchrow_hashref;
+        unless ($santier) {
+            $error = "Santier nu a fost gasit";
+        }
+    };
+}
+
+# Handle form submission
+if ($q->request_method() eq 'POST') {
+    my %data = (
+        titlu => $q->param('titlu') || '',
+        judet => $q->param('judet') || '',
+        adresa => $q->param('adresa') || '',
+        valoare => $q->param('valoare') || '',
+        domeniu => $q->param('domeniu') || '',
+        subdomeniu => $q->param('subdomeniu') || '',
+        descriere => $q->param('descriere') || '',
+        solicitari => $q->param('solicitari') || '',
+        observatii => $q->param('observatii') || '',
+        dimensiune => $q->param('dimensiune') || 'Mediu',
+        sector => $q->param('sector') || 'Public',
+        stadiu => $q->param('stadiu') || '',
+        beneficiar_nume => $q->param('beneficiar_nume') || '',
+        beneficiar_persoana => $q->param('beneficiar_persoana') || '',
+        beneficiar_contact => $q->param('beneficiar_contact') || '',
+        beneficiar_email => $q->param('beneficiar_email') || '',
+        antreprenor_nume => $q->param('antreprenor_nume') || '',
+        antreprenor_persoana => $q->param('antreprenor_persoana') || '',
+        antreprenor_contact => $q->param('antreprenor_contact') || '',
+        antreprenor_email => $q->param('antreprenor_email') || '',
+        proiectant_nume => $q->param('proiectant_nume') || '',
+        proiectant_persoana => $q->param('proiectant_persoana') || '',
+        proiectant_contact => $q->param('proiectant_contact') || '',
+        proiectant_email => $q->param('proiectant_email') || ''
+    );
+    
+    if (!$data{titlu}) {
+        $error = "Titlul este obligatoriu";
+    } else {
+        eval {
+            if ($santier_id) {
+                # Update
+                my $sql = "UPDATE santiere SET 
+                    titlu=?, judet=?, adresa=?, valoare=?, domeniu=?, subdomeniu=?,
+                    descriere=?, solicitari=?, observatii=?, dimensiune=?, sector=?, stadiu=?,
+                    beneficiar_nume=?, beneficiar_persoana=?, beneficiar_contact=?, beneficiar_email=?,
+                    antreprenor_nume=?, antreprenor_persoana=?, antreprenor_contact=?, antreprenor_email=?,
+                    proiectant_nume=?, proiectant_persoana=?, proiectant_contact=?, proiectant_email=?
+                    WHERE id=?";
+                my $sth = $dbh->prepare($sql);
+                $sth->execute(
+                    $data{titlu}, $data{judet}, $data{adresa}, $data{valoare}, $data{domeniu}, $data{subdomeniu},
+                    $data{descriere}, $data{solicitari}, $data{observatii}, $data{dimensiune}, $data{sector}, $data{stadiu},
+                    $data{beneficiar_nume}, $data{beneficiar_persoana}, $data{beneficiar_contact}, $data{beneficiar_email},
+                    $data{antreprenor_nume}, $data{antreprenor_persoana}, $data{antreprenor_contact}, $data{antreprenor_email},
+                    $data{proiectant_nume}, $data{proiectant_persoana}, $data{proiectant_contact}, $data{proiectant_email},
+                    $santier_id
+                );
+                $success = "Santier actualizat cu succes";
+            } else {
+                # Insert
+                my $sql = "INSERT INTO santiere (
+                    titlu, judet, adresa, valoare, domeniu, subdomeniu,
+                    descriere, solicitari, observatii, dimensiune, sector, stadiu,
+                    beneficiar_nume, beneficiar_persoana, beneficiar_contact, beneficiar_email,
+                    antreprenor_nume, antreprenor_persoana, antreprenor_contact, antreprenor_email,
+                    proiectant_nume, proiectant_persoana, proiectant_contact, proiectant_email
+                ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                my $sth = $dbh->prepare($sql);
+                $sth->execute(
+                    $data{titlu}, $data{judet}, $data{adresa}, $data{valoare}, $data{domeniu}, $data{subdomeniu},
+                    $data{descriere}, $data{solicitari}, $data{observatii}, $data{dimensiune}, $data{sector}, $data{stadiu},
+                    $data{beneficiar_nume}, $data{beneficiar_persoana}, $data{beneficiar_contact}, $data{beneficiar_email},
+                    $data{antreprenor_nume}, $data{antreprenor_persoana}, $data{antreprenor_contact}, $data{antreprenor_email},
+                    $data{proiectant_nume}, $data{proiectant_persoana}, $data{proiectant_contact}, $data{proiectant_email}
+                );
+                $santier_id = $dbh->last_insert_id(undef, undef, 'santiere', 'id');
+                $success = "Santier adaugat cu succes";
+            }
+            $santier = \%data;
+            $santier->{id} = $santier_id;
+        };
+        if ($@) {
+            $error = "Eroare la salvare: $@";
+        }
+    }
+}
+</%init>
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><% $santier_id ? 'Editeaza' : 'Adauga' %> Santier - Admin</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'admin') %>
+
+<div class="admin-page">
+  <div class="container">
+    <div class="admin-header">
+      <h1><% $santier_id ? 'Editeaza' : 'Adauga' %> Santier</h1>
+      <a href="/admin/santiere/" class="btn-secondary">← Inapoi</a>
+    </div>
+
+% if ($error) {
+    <div class="alert alert-error"><% $error %></div>
+% }
+% if ($success) {
+    <div class="alert alert-success"><% $success %></div>
+% }
+
+    <form method="post" class="admin-form">
+      <div class="form-section">
+        <h2>Informatii Generale</h2>
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Titlu *</label>
+            <input type="text" name="titlu" value="<% $santier->{titlu} || '' %>" required>
+          </div>
+          
+          <div class="form-group">
+            <label>Judet</label>
+            <input type="text" name="judet" value="<% $santier->{judet} || '' %>">
+          </div>
+          
+          <div class="form-group">
+            <label>Valoare</label>
+            <input type="text" name="valoare" value="<% $santier->{valoare} || '' %>" placeholder="ex: 1.500.000,00 RON">
+          </div>
+          
+          <div class="form-group full-width">
+            <label>Adresa</label>
+            <input type="text" name="adresa" value="<% $santier->{adresa} || '' %>">
+          </div>
+          
+          <div class="form-group">
+            <label>Domeniu</label>
+            <input type="text" name="domeniu" value="<% $santier->{domeniu} || '' %>" placeholder="ex: Infrastructura, Cladiri">
+          </div>
+          
+          <div class="form-group">
+            <label>Subdomeniu</label>
+            <input type="text" name="subdomeniu" value="<% $santier->{subdomeniu} || '' %>" placeholder="ex: Rutier, Civile">
+          </div>
+          
+          <div class="form-group">
+            <label>Dimensiune</label>
+            <select name="dimensiune">
+              <option value="Mic" <% ($santier->{dimensiune} || '') eq 'Mic' ? 'selected' : '' %>>Mic</option>
+              <option value="Mediu" <% ($santier->{dimensiune} || 'Mediu') eq 'Mediu' ? 'selected' : '' %>>Mediu</option>
+              <option value="Mare" <% ($santier->{dimensiune} || '') eq 'Mare' ? 'selected' : '' %>>Mare</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Sector</label>
+            <select name="sector">
+              <option value="Public" <% ($santier->{sector} || 'Public') eq 'Public' ? 'selected' : '' %>>Public</option>
+              <option value="Privat" <% ($santier->{sector} || '') eq 'Privat' ? 'selected' : '' %>>Privat</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Stadiu</label>
+            <input type="text" name="stadiu" value="<% $santier->{stadiu} || '' %>" placeholder="ex: Licitatie, Executie">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Descrieri</h2>
+        <div class="form-group">
+          <label>Descriere</label>
+          <textarea name="descriere" rows="4"><% $santier->{descriere} || '' %></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Solicitari</label>
+          <textarea name="solicitari" rows="3"><% $santier->{solicitari} || '' %></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Observatii</label>
+          <textarea name="observatii" rows="3"><% $santier->{observatii} || '' %></textarea>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Beneficiar</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nume</label>
+            <input type="text" name="beneficiar_nume" value="<% $santier->{beneficiar_nume} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Persoana Contact</label>
+            <input type="text" name="beneficiar_persoana" value="<% $santier->{beneficiar_persoana} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Telefon</label>
+            <input type="text" name="beneficiar_contact" value="<% $santier->{beneficiar_contact} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="beneficiar_email" value="<% $santier->{beneficiar_email} || '' %>">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Antreprenor</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nume</label>
+            <input type="text" name="antreprenor_nume" value="<% $santier->{antreprenor_nume} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Persoana Contact</label>
+            <input type="text" name="antreprenor_persoana" value="<% $santier->{antreprenor_persoana} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Telefon</label>
+            <input type="text" name="antreprenor_contact" value="<% $santier->{antreprenor_contact} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="antreprenor_email" value="<% $santier->{antreprenor_email} || '' %>">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <h2>Proiectant</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nume</label>
+            <input type="text" name="proiectant_nume" value="<% $santier->{proiectant_nume} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Persoana Contact</label>
+            <input type="text" name="proiectant_persoana" value="<% $santier->{proiectant_persoana} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Telefon</label>
+            <input type="text" name="proiectant_contact" value="<% $santier->{proiectant_contact} || '' %>">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="proiectant_email" value="<% $santier->{proiectant_email} || '' %>">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn-primary">Salveaza</button>
+        <a href="/admin/santiere/" class="btn-secondary">Anuleaza</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

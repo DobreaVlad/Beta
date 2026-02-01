@@ -3,28 +3,75 @@ $user => undef
 $current => ''
 </%args>
 <header class="site-header">
-  <div class="nav-bar">
+  <!-- Mobile Header -->
+  <div class="mobile-header">
+    <button class="hamburger-menu" id="hamburgerMenu" aria-label="Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+    <a class="brand-mobile" href="/">
+      <img src="/public/logo.png" alt="DateSantiere Logo">
+      <span>DateSantiere</span>
+    </a>
+    <div class="mobile-spacer"></div>
+  </div>
+
+  <!-- Desktop Header -->
+  <div class="nav-bar desktop-header">
     <div class="container nav-inner">
-      <a class="brand" href="/">Property Site</a>
+      <a class="brand" href="/" style="display: flex; align-items: flex-end; line-height: 1; margin-bottom: 12px;">
+        <img src="/public/logo.png" alt="DateSantiere Logo" style="height: 32px; margin-right: 8px; display: block;">
+        <span style="line-height: 1;">DateSantiere</span>
+      </a>
       <nav class="header-nav">
-        <a href="/about/">About</a>
-        <a href="/search/">Properties</a>
-        <a href="/projects/">Projects</a>
-        <a href="/pricing/">Pricing</a>
-        <a href="/contact/">Contact Us</a>
+        <a href="/projects/">Santiere</a>
+        <a href="/about/">Despre Noi</a>
+        <a href="/pricing/">Preturi</a>
+        <a href="/contact/">Contact</a>
       </nav>
       <div class="auth-actions">
 % if ($user) {
-  <span class="user-name">Hi, <% $user->{name} %></span>
+  <span class="user-name">Buna, <% $user->{name} %></span>
 % if ($user->{is_admin}) {
-        <a href="/admin/" class="admin-icon" title="Admin Panel">🔧</a>
+        <a href="/admin/" class="admin-icon" title="Panou Admin">🔧</a>
 % }
-        <a href="/properties/add.html" class="btn-secondary">+ Add Property</a>
-        <a href="/profile/" class="btn-secondary">Profile</a>
-        <a href="/auth/logout.html" class="btn-secondary">Logout</a>
+        <a href="/profile/" class="btn-secondary">Profil</a>
+        <a href="/auth/logout.html" class="btn-secondary">Iesire</a>
 % } else {
-        <a href="/auth/login.html" class="btn-primary">Login</a>
-        <a href="/auth/register.html" class="btn-secondary">Register</a>
+        <a href="/auth/login.html" class="btn-primary">Autentificare</a>
+        <a href="/auth/register.html" class="btn-secondary">Inregistrare</a>
+% }
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Menu Overlay -->
+  <div class="mobile-menu-overlay" id="mobileMenu">
+    <div class="mobile-menu-content">
+      <div class="mobile-menu-header">
+        <span>Meniu</span>
+        <button class="mobile-menu-close" id="closeMobileMenu" aria-label="Inchide">×</button>
+      </div>
+      <nav class="mobile-menu-nav">
+        <a href="/projects/">Santiere</a>
+        <a href="/about/">Despre Noi</a>
+        <a href="/pricing/">Preturi</a>
+        <a href="/contact/">Contact</a>
+      </nav>
+      <div class="mobile-menu-auth">
+% if ($user) {
+        <div class="mobile-user-info">
+          <span class="mobile-user-name">Buna, <% $user->{name} %></span>
+        </div>
+% if ($user->{is_admin}) {
+        <a href="/admin/" class="mobile-menu-btn">🔧 Panou Admin</a>
+% }
+        <a href="/profile/" class="mobile-menu-btn">Profil</a>
+        <a href="/auth/logout.html" class="mobile-menu-btn mobile-menu-btn-secondary">Iesire</a>
+% } else {
+        <a href="/auth/login.html" class="mobile-menu-btn">Autentificare</a>
+        <a href="/auth/register.html" class="mobile-menu-btn mobile-menu-btn-secondary">Inregistrare</a>
 % }
       </div>
     </div>

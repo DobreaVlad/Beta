@@ -41,21 +41,59 @@ if ($q->request_method eq 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Contact - PropertySite</title>
   <link rel="stylesheet" href="/public/css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
 <% $m->comp('/includes/header.html', user => $user, current => 'contact') %>
 
 <div class="auth-container">
-  <h1>Contact Us</h1>
+  <h1>Contact</h1>
+  
+  <div style="margin-bottom: 30px;">
+    <h2>Detalii Contact</h2>
+    <p><strong>Callinvest SRL</strong></p>
+    <p>Str. Croitorilor, nr 24, Cluj-Napoca</p>
+    <p>
+      <strong>Telefon:</strong><br>
+      <a href="tel:0766183434">0766.183.434</a><br>
+      <a href="tel:0766183433">0766.183.433</a><br>
+      <a href="tel:0364141666">0364.141.666</a>
+    </p>
+    <p>
+      <strong>Email:</strong><br>
+      <a href="mailto:office@datesantiere.ro">office@datesantiere.ro</a><br>
+      <a href="mailto:marketing@datesantiere.ro">marketing@datesantiere.ro</a>
+    </p>
+    <p>
+      <strong>Social Media:</strong><br>
+      <div style="display: flex; gap: 15px; margin-top: 10px; font-size: 24px;">
+        <a href="https://www.facebook.com/date.santiere" target="_blank" title="Facebook" style="color: #1877f2;">
+          <i class="fab fa-facebook"></i>
+        </a>
+        <a href="https://www.linkedin.com/company/datesantiere" target="_blank" title="LinkedIn" style="color: #0a66c2;">
+          <i class="fab fa-linkedin"></i>
+        </a>
+        <a href="https://twitter.com/DateSantiere" target="_blank" title="Twitter" style="color: #1da1f2;">
+          <i class="fab fa-twitter"></i>
+        </a>
+        <a href="https://www.youtube.com/channel/UCP5wclj7kseQ_pwZEDMl-kw" target="_blank" title="YouTube" style="color: #ff0000;">
+          <i class="fab fa-youtube"></i>
+        </a>
+      </div>
+    </p>
+  </div>
+
 % if ($success) {
   <div class="success"><% $success %></div>
 % }
 % if ($error) {
   <div class="error"><% $error %></div>
 % }
+  
+  <h2>Trimite-ne un mesaj</h2>
   <form method="post" action="/contact/">
     <div class="form-group">
-      <label for="name">Full Name</label>
+      <label for="name">Nume firma / Persoana de contact</label>
       <input type="text" id="name" name="name" required>
     </div>
     <div class="form-group">
@@ -63,10 +101,10 @@ if ($q->request_method eq 'POST') {
       <input type="email" id="email" name="email" required>
     </div>
     <div class="form-group">
-      <label for="message">Message</label>
+      <label for="message">Mesaj</label>
       <textarea id="message" name="message" rows="6" required></textarea>
     </div>
-    <button type="submit">Send Message</button>
+    <button type="submit">Trimite</button>
   </form>
 </div>
 

@@ -11,7 +11,8 @@ our @EXPORT_OK = qw(
     delete_session create_user send_email create_password_reset
     get_user_by_reset_token consume_password_reset update_user_password
     create_subscription create_payment update_payment_status get_user_subscription
-    create_stripe_checkout_session verify_stripe_signature
+    create_stripe_checkout_session verify_stripe_signature get_stripe_session
+    format_date_ro
 );
 
 # Database configuration
@@ -276,6 +277,48 @@ sub verify_stripe_signature {
     my $expected = hmac_sha256_hex($signed_payload, $STRIPE_WEBHOOK_SECRET);
     
     return $signature eq $expected;
+}
+
+sub get_stripe_session {
+    my ($session_id) = @_;
+    
+    use LWP::UserAgent;
+    use JSON;
+    use HTTP::Request;
+    
+    my $stripe_key = $ENV{STRIPE_SECRET_KEY} || $STRIPE_SECRET_KEY;
+    return undef unless $stripe_key;
+    
+    my $ua = LWP::UserAgent->new(timeout => 10);
+    my $request = HTTP::Request->new(GET => "https://api.stripe.com/v1/checkout/sessions/$session_id");
+    $request->authorization_basic($stripe_key, '');
+    
+    my $response = $ua->request($request);
+    
+    if ($response->is_success) {
+        return decode_json($response->content);
+    }
+    
+    return undef;
+}
+
+sub format_date_ro {
+    my ($date) = @_;
+    
+    return '' unless defined $date && $date ne '';
+    
+    my @months = ('', 'Ianuarie', 'Februarie', 'Martie', 'Aprilie', 'Mai', 'Iunie',
+                  'Iulie', 'August', 'Septembrie', 'Octombrie', 'Noiembrie', 'Decembrie');
+    
+    # Parse MySQL TIMESTAMP format: 2026-02-01 14:30:00
+    if ($date =~ /^(\d{4})-(\d{2})-(\d{2})/) {
+        my ($year, $month, $day) = ($1, $2, $3);
+        $day =~ s/^0//;  # Remove leading zero
+        my $month_name = $months[int($month)];
+        return "$day $month_name $year";
+    }
+    
+    return $date;
 }
 
 1;

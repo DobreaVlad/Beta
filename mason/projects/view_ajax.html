@@ -1,0 +1,222 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh format_date_ro);
+use CGI qw(cookie param);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+my $santier_id = $q->param('id') || '';
+my $santier;
+
+if ($santier_id) {
+    my $dbh = dbh();
+    eval {
+        my $sql = "SELECT * FROM santiere WHERE id = ?";
+        my $sth = $dbh->prepare($sql);
+        $sth->execute($santier_id);
+        $santier = $sth->fetchrow_hashref;
+    };
+}
+
+unless ($santier) {
+    print "Content-Type: text/html\n\n";
+    print "<p>Santier nu a fost gasit</p>";
+    return;
+}
+</%init><div class="santier-modal-header">
+  <div class="santier-title-section">
+    <h1><% $santier->{titlu} %></h1>
+    <span class="santier-id">Cod: #<% $santier->{id} %></span>
+  </div>
+  <div class="santier-badges">
+% if ($santier->{dimensiune}) {
+    <span class="badge badge-size badge-<% lc($santier->{dimensiune}) %>">
+      <% $santier->{dimensiune} %>
+    </span>
+% }
+% if ($santier->{sector}) {
+    <span class="badge badge-sector badge-<% lc($santier->{sector}) %>">
+      <% $santier->{sector} %>
+    </span>
+% }
+  </div>
+</div>
+
+<div class="santier-modal-content-grid">
+  <!-- Main Info -->
+  <div class="santier-main-section">
+    <div class="santier-card">
+      <h2>Informatii Principale</h2>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Judet</span>
+          <span class="info-value"><% $santier->{judet} || 'N/A' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Adresa</span>
+          <span class="info-value"><% $santier->{adresa} || 'N/A' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Valoare</span>
+          <span class="info-value highlight"><% $santier->{valoare} || 'N/A' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Domeniu</span>
+          <span class="info-value"><% $santier->{domeniu} || 'N/A' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Subdomeniu</span>
+          <span class="info-value"><% $santier->{subdomeniu} || 'N/A' %></span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Stadiu</span>
+          <span class="info-value"><% $santier->{stadiu} || 'N/A' %></span>
+        </div>
+      </div>
+    </div>
+
+% if ($santier->{descriere}) {
+    <div class="santier-card">
+      <h2>Descriere</h2>
+      <p class="santier-description"><% $santier->{descriere} %></p>
+    </div>
+% }
+
+% if ($santier->{solicitari}) {
+    <div class="santier-card santier-requests-card">
+      <h2>Solicitari</h2>
+      <p class="santier-requests"><% $santier->{solicitari} %></p>
+    </div>
+% }
+
+% if ($santier->{observatii}) {
+    <div class="santier-card">
+      <h2>Observatii</h2>
+      <p class="santier-observations"><% $santier->{observatii} %></p>
+    </div>
+% }
+  </div>
+
+  <!-- Sidebar with Contacts -->
+  <div class="santier-sidebar">
+% if ($user) {
+    <!-- Beneficiar -->
+% if ($santier->{beneficiar_nume}) {
+    <div class="contact-card">
+      <h3>Beneficiar</h3>
+      <div class="contact-info">
+        <div class="contact-item">
+          <span class="contact-label">Nume</span>
+          <span class="contact-value"><% $santier->{beneficiar_nume} %></span>
+        </div>
+% if ($santier->{beneficiar_persoana}) {
+        <div class="contact-item">
+          <span class="contact-label">Persoana Contact</span>
+          <span class="contact-value"><% $santier->{beneficiar_persoana} %></span>
+        </div>
+% }
+% if ($santier->{beneficiar_contact}) {
+        <div class="contact-item">
+          <span class="contact-label">Telefon</span>
+          <span class="contact-value"><% $santier->{beneficiar_contact} %></span>
+        </div>
+% }
+% if ($santier->{beneficiar_email}) {
+        <div class="contact-item">
+          <span class="contact-label">Email</span>
+          <span class="contact-value"><a href="mailto:<% $santier->{beneficiar_email} %>"><% $santier->{beneficiar_email} %></a></span>
+        </div>
+% }
+      </div>
+    </div>
+% }
+
+    <!-- Antreprenor -->
+% if ($santier->{antreprenor_nume}) {
+    <div class="contact-card">
+      <h3>Antreprenor</h3>
+      <div class="contact-info">
+        <div class="contact-item">
+          <span class="contact-label">Nume</span>
+          <span class="contact-value"><% $santier->{antreprenor_nume} %></span>
+        </div>
+% if ($santier->{antreprenor_persoana}) {
+        <div class="contact-item">
+          <span class="contact-label">Persoana Contact</span>
+          <span class="contact-value"><% $santier->{antreprenor_persoana} %></span>
+        </div>
+% }
+% if ($santier->{antreprenor_contact}) {
+        <div class="contact-item">
+          <span class="contact-label">Telefon</span>
+          <span class="contact-value"><% $santier->{antreprenor_contact} %></span>
+        </div>
+% }
+% if ($santier->{antreprenor_email}) {
+        <div class="contact-item">
+          <span class="contact-label">Email</span>
+          <span class="contact-value"><a href="mailto:<% $santier->{antreprenor_email} %>"><% $santier->{antreprenor_email} %></a></span>
+        </div>
+% }
+      </div>
+    </div>
+% }
+
+    <!-- Proiectant -->
+% if ($santier->{proiectant_nume}) {
+    <div class="contact-card">
+      <h3>Proiectant</h3>
+      <div class="contact-info">
+        <div class="contact-item">
+          <span class="contact-label">Nume</span>
+          <span class="contact-value"><% $santier->{proiectant_nume} %></span>
+        </div>
+% if ($santier->{proiectant_persoana}) {
+        <div class="contact-item">
+          <span class="contact-label">Persoana Contact</span>
+          <span class="contact-value"><% $santier->{proiectant_persoana} %></span>
+        </div>
+% }
+% if ($santier->{proiectant_contact}) {
+        <div class="contact-item">
+          <span class="contact-label">Telefon</span>
+          <span class="contact-value"><% $santier->{proiectant_contact} %></span>
+        </div>
+% }
+% if ($santier->{proiectant_email}) {
+        <div class="contact-item">
+          <span class="contact-label">Email</span>
+          <span class="contact-value"><a href="mailto:<% $santier->{proiectant_email} %>"><% $santier->{proiectant_email} %></a></span>
+        </div>
+% }
+      </div>
+    </div>
+% }
+% } else {
+    <!-- Login Required Message -->
+    <div class="login-required-card">
+      <div class="lock-icon">🔒</div>
+      <h3>Informatii de Contact</h3>
+      <p>Pentru a vedea datele de contact ale beneficiarului, antreprenorului si proiectantului, trebuie sa fii autentificat.</p>
+      <button class="btn-primary btn-block" onclick="authModal.open()">Autentifica-te</button>
+    </div>
+% }
+
+    <!-- Meta Info -->
+    <div class="meta-info-card">
+      <h3>Detalii Santier</h3>
+      <div class="meta-item">
+        <span class="meta-label">Data Adaugare</span>
+        <span class="meta-value"><% format_date_ro($santier->{created_at}) %></span>
+      </div>
+% if ($santier->{updated_at} && $santier->{updated_at} ne $santier->{created_at}) {
+      <div class="meta-item">
+        <span class="meta-label">Ultima Actualizare</span>
+        <span class="meta-value"><% format_date_ro($santier->{updated_at}) %></span>
+      </div>
+% }
+    </div>
+  </div>
+</div>

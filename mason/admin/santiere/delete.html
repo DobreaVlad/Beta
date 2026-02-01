@@ -1,0 +1,36 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh);
+use CGI qw(cookie param);
+use JSON;
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+print "Content-Type: application/json\n\n";
+
+if (!$user || !$user->{is_admin}) {
+    print encode_json({ success => 0, error => 'Unauthorized' });
+    return;
+}
+
+my $santier_id = $q->param('id') || '';
+
+if (!$santier_id) {
+    print encode_json({ success => 0, error => 'Missing ID' });
+    return;
+}
+
+my $dbh = dbh();
+eval {
+    my $sql = "DELETE FROM santiere WHERE id = ?";
+    my $sth = $dbh->prepare($sql);
+    $sth->execute($santier_id);
+    print encode_json({ success => 1 });
+};
+
+if ($@) {
+    print encode_json({ success => 0, error => $@ });
+}
+</%init>

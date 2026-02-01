@@ -1,6 +1,6 @@
 <%init>
 use lib '/var/www/html/lib';
-use AppLib qw(get_user_by_session dbh);
+use AppLib qw(get_user_by_session dbh format_date_ro);
 use CGI qw(cookie param);
 
 my $q = CGI->new;
@@ -8,467 +8,379 @@ my $session_cookie = $q->cookie('SESSION') || '';
 my $user = get_user_by_session($session_cookie);
 
 # Filter parameters
-my $status = $q->param('status') || '';
-my $size = $q->param('size') || '';
-my $zone = $q->param('zone') || '';
-my $county = $q->param('county') || '';
-my $type_civil = $q->param('type_civil') || '';
-my $type_industrial = $q->param('type_industrial') || '';
-my $type_infrastructure = $q->param('type_infrastructure') || '';
-my $date_from = $q->param('date_from') || '';
-my $search_term = $q->param('search') || '';
+my $search = $q->param('search') || '';
+my $judet = $q->param('judet') || '';
+my $domeniu = $q->param('domeniu') || '';
+my $subdomeniu = $q->param('subdomeniu') || '';
+my $dimensiune = $q->param('dimensiune') || '';
+my $stadiu = $q->param('stadiu') || '';
+my $sector = $q->param('sector') || '';
+my $sort = $q->param('sort') || 'created_at_desc';
 
-my @projects = ();
-my $has_filters = $status || $size || $zone || $county || $type_civil || $type_industrial || $type_infrastructure || $date_from || $search_term;
+my @santiere = ();
+my $total_count = 0;
 
-# Mock data - replace with actual database query
-if ($has_filters || 1) {  # Show results by default
-    # This would be a database query in production
-    @projects = (
-        {
-            id => 144758,
-            title => 'Water Network Rehabilitation',
-            county => 'TIMIS',
-            status => 'Design Phase',
-            value => '6,925,317.68 RON excl. VAT',
-            requests => 'connection materials, pipes, conduits, concrete prefabs, crushed stone',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Large'
-        },
-        {
-            id => 144759,
-            title => 'Residential Building',
-            county => 'ALBA',
-            status => 'Construction',
-            value => 'G+1F',
-            requests => 'concrete, rebar, bricks, PVC windows, thermal insulation, screed, interior+exterior finishes',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Medium'
-        },
-        {
-            id => 144760,
-            title => 'XCity Towers Residential Complex',
-            county => 'TIMIS',
-            status => 'Construction',
-            value => 'B+G+10F / B+G+15F',
-            requests => 'concrete, rebar, bricks, finishes, heating systems, plumbing, electrical installations',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Large'
-        },
-        {
-            id => 144761,
-            title => 'Sisesti Residential Complex',
-            county => 'ILFOV',
-            status => 'Design Phase',
-            value => '480,000 sqm',
-            requests => 'general contracting + construction materials',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Large'
-        },
-        {
-            id => 144762,
-            title => 'Timpuri Noi Offices Complex',
-            county => 'BUCHAREST',
-            status => 'Construction',
-            value => '50,000 sqm / B+G+13F',
-            requests => 'rebar, bricks, windows, interior and exterior finishes',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Large'
-        },
-        {
-            id => 144763,
-            title => 'Residential Home',
-            county => 'SUCEAVA',
-            status => 'Design Phase',
-            value => 'G+1F',
-            requests => 'execution, concrete, rebar, bricks, thermal systems, PVC windows, finishes, screed',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Small'
-        },
-        {
-            id => 144764,
-            title => 'Dental Clinic',
-            county => 'DAMBOVITA',
-            status => 'Design Phase',
-            value => 'Medium',
-            requests => 'concrete, steel, bricks, windows, ventilated facade, waterproofing',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Medium'
-        },
-        {
-            id => 144765,
-            title => 'Construction of Recovery Center',
-            county => 'VALCEA',
-            status => 'Design Phase',
-            value => '2,529,804.53 RON excl. VAT',
-            requests => 'concrete, rebar, bricks, thermal systems, PVC windows, finishes, screed, washable paints, plaster',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Medium'
-        },
-        {
-            id => 144766,
-            title => 'Driving School',
-            county => 'TELEORMAN',
-            status => 'Renovation',
-            value => 'G+1F',
-            requests => 'interior finishes, flooring, lighting fixtures, paints',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Small'
-        },
-        {
-            id => 144767,
-            title => 'Residential Building',
-            county => 'ILFOV',
-            status => 'Construction',
-            value => '2B+G+3F',
-            requests => 'execution, bricks, windows, waterproofing, finishes',
-            beneficiary => '******',
-            designer => '******',
-            contractor => '******',
-            date => '1/30/2026',
-            size => 'Medium'
-        }
+# Database query
+my $dbh = dbh();
+eval {
+    my @conditions;
+    my @params;
+    
+    if ($search) {
+        push @conditions, "(titlu LIKE ? OR descriere LIKE ? OR solicitari LIKE ?)";
+        push @params, "%$search%", "%$search%", "%$search%";
+    }
+    if ($judet) {
+        push @conditions, "judet = ?";
+        push @params, $judet;
+    }
+    if ($domeniu) {
+        push @conditions, "domeniu = ?";
+        push @params, $domeniu;
+    }
+    if ($subdomeniu) {
+        push @conditions, "subdomeniu = ?";
+        push @params, $subdomeniu;
+    }
+    if ($dimensiune) {
+        push @conditions, "dimensiune = ?";
+        push @params, $dimensiune;
+    }
+    if ($stadiu) {
+        push @conditions, "stadiu = ?";
+        push @params, $stadiu;
+    }
+    if ($sector) {
+        push @conditions, "sector = ?";
+        push @params, $sector;
+    }
+    
+    my $where_clause = @conditions ? "WHERE " . join(' AND ', @conditions) : '';
+    
+    # Get total count
+    my $count_sql = "SELECT COUNT(*) FROM santiere $where_clause";
+    my $count_sth = $dbh->prepare($count_sql);
+    $count_sth->execute(@params);
+    ($total_count) = $count_sth->fetchrow_array;
+    
+    # Get results with sorting
+    my %sort_map = (
+        'created_at_desc' => 'created_at DESC',
+        'created_at_asc' => 'created_at ASC',
+        'valoare_desc' => 'valoare DESC',
+        'valoare_asc' => 'valoare ASC',
+        'titlu_asc' => 'titlu ASC',
+        'titlu_desc' => 'titlu DESC'
     );
-}
+    my $order_by = $sort_map{$sort} || 'created_at DESC';
+    my $sql = "SELECT * FROM santiere $where_clause ORDER BY $order_by LIMIT 50";
+    my $sth = $dbh->prepare($sql);
+    $sth->execute(@params);
+    while (my $row = $sth->fetchrow_hashref) {
+        push @santiere, $row;
+    }
+};
+
+# Get unique values for filters
+my $judete = $dbh->selectcol_arrayref("SELECT DISTINCT judet FROM santiere WHERE judet IS NOT NULL ORDER BY judet");
+my $domenii = $dbh->selectcol_arrayref("SELECT DISTINCT domeniu FROM santiere WHERE domeniu IS NOT NULL ORDER BY domeniu");
+my $subdomenii = $dbh->selectcol_arrayref("SELECT DISTINCT subdomeniu FROM santiere WHERE subdomeniu IS NOT NULL ORDER BY subdomeniu");
+my $stadii = $dbh->selectcol_arrayref("SELECT DISTINCT stadiu FROM santiere WHERE stadiu IS NOT NULL ORDER BY stadiu");
 </%init>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ro">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Construction Projects List - PropertySite</title>
+  <title>Santiere - DateSantiere</title>
   <link rel="stylesheet" href="/public/css/styles.css">
-  <link href='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.css' rel='stylesheet' />
-  <script src='https://api.mapbox.com/mapbox-gl-js/v3.0.1/mapbox-gl.js'></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <% $m->comp('/includes/header.html', user => $user, current => 'projects') %>
 
 <div class="projects-page">
-  <div class="projects-filter-section">
-    <div class="container">
-    <!-- Search and Filter Form -->
-    <form method="get" action="/projects/" class="projects-filter-form">
-      <div class="filter-section">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label for="status">Status</label>
-            <select name="status" id="status">
-              <option value="">All Statuses</option>
-              <option value="design"<% $status eq 'design' ? ' selected' : '' %>>Design Phase</option>
-              <option value="construction"<% $status eq 'construction' ? ' selected' : '' %>>Construction</option>
-              <option value="renovation"<% $status eq 'renovation' ? ' selected' : '' %>>Renovation</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label for="size">Size</label>
-            <select name="size" id="size">
-              <option value="">All Sizes</option>
-              <option value="small"<% $size eq 'small' ? ' selected' : '' %>>Small</option>
-              <option value="medium"<% $size eq 'medium' ? ' selected' : '' %>>Medium</option>
-              <option value="large"<% $size eq 'large' ? ' selected' : '' %>>Large</option>
-            </select>
-          </div>
-
-          <div class="filter-group">
-            <label for="zone">Zone</label>
-            <input type="text" name="zone" id="zone" value="<% $zone %>" placeholder="Enter zone">
-          </div>
-
-          <div class="filter-group">
-            <label for="county">County</label>
-            <input type="text" name="county" id="county" value="<% $county %>" placeholder="Enter county">
-          </div>
+  <div class="container-full">
+    <div class="projects-layout">
+      <!-- Filters Sidebar -->
+      <aside class="filters-sidebar">
+        <div class="filters-header">
+          <h3>Filtre</h3>
+          <button class="filters-reset" onclick="window.location.href='/projects/'">Reseteaza</button>
         </div>
 
-        <div class="filter-row">
-          <div class="filter-group checkbox-group">
-            <label title="Civil">
-              <input type="checkbox" name="type_civil" value="1"<% $type_civil ? ' checked' : '' %>>
-              <span class="checkbox-icon">🏢</span>
-            </label>
-          </div>
-
-          <div class="filter-group checkbox-group">
-            <label title="Industrial">
-              <input type="checkbox" name="type_industrial" value="1"<% $type_industrial ? ' checked' : '' %>>
-              <span class="checkbox-icon">🏭</span>
-            </label>
-          </div>
-
-          <div class="filter-group checkbox-group">
-            <label title="Infrastructure">
-              <input type="checkbox" name="type_infrastructure" value="1"<% $type_infrastructure ? ' checked' : '' %>>
-              <span class="checkbox-icon">🌉</span>
-            </label>
-          </div>
-
+        <form method="get" action="/projects/" class="filters-form">
+          <!-- Search -->
           <div class="filter-group">
-            <label for="date_from">Date From</label>
-            <input type="date" name="date_from" id="date_from" value="<% $date_from %>">
-          </div>
-        </div>
-
-        <div class="filter-row search-row">
-          <div class="filter-group search-group">
-            <input type="text" name="search" id="search" value="<% $search_term %>" placeholder="Search projects by keywords...">
-          </div>
-          <div class="filter-actions">
-            <button type="submit" class="btn-primary">Search</button>
-            <a href="/projects/" class="btn-secondary">Reset</a>
-          </div>
-        </div>
-      </div>
-    </form>
-    </div>
-  </div>
-
-  <!-- Split Layout: Results Left, Map Right -->
-  <div class="projects-split-layout">
-    <div class="projects-results-column">
-% if (@projects) {
-      <p class="results-count">
-        Showing <strong><% scalar(@projects) %></strong> projects
-      </p>
-
-      <div class="projects-grid">
-% foreach my $project (@projects) {
-        <div class="project-card">
-          <div class="project-header">
-            <h3 class="project-title"><% $project->{title} %></h3>
-            <span class="project-id">ID: <% $project->{id} %></span>
-          </div>
-          
-          <div class="project-info">
-            <div class="info-row">
-              <span class="info-label">County:</span>
-              <span class="info-value"><% $project->{county} %></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Status:</span>
-              <span class="info-value status-badge"><% $project->{status} %></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Size/Value:</span>
-              <span class="info-value"><% $project->{value} %></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Size:</span>
-              <span class="info-value size-badge"><% $project->{size} %></span>
-            </div>
+            <label>Cauta</label>
+            <input type="text" name="search" placeholder="Titlu, descriere, solicitari..." value="<% $search %>">
           </div>
 
-          <div class="project-requests">
-            <span class="info-label">Requirements:</span>
-            <p><% $project->{requests} %></p>
-          </div>
-
-          <div class="project-details">
-            <div class="detail-item">
-              <strong>Beneficiary:</strong> <% $project->{beneficiary} %>
-            </div>
-            <div class="detail-item">
-              <strong>Designer:</strong> <% $project->{designer} %>
-            </div>
-            <div class="detail-item">
-              <strong>Contractor:</strong> <% $project->{contractor} %>
-            </div>
-          </div>
-
-          <div class="project-footer">
-            <span class="project-date">📅 <% $project->{date} %></span>
-            <button class="btn-view-details" onclick="openProjectModal('<% $project->{id} %>', '<% $project->{title} %>', '<% $project->{county} %>', '<% $project->{status} %>', '<% $project->{value} %>', '<% $project->{size} %>', `<% $project->{requests} %>`, '<% $project->{beneficiary} %>', '<% $project->{designer} %>', '<% $project->{contractor} %>', '<% $project->{date} %>')">View Details →</button>
-          </div>
-        </div>
+          <!-- Judet -->
+          <div class="filter-group">
+            <label>Judet</label>
+            <select name="judet">
+              <option value="">Toate judetele</option>
+% foreach my $j (@$judete) {
+              <option value="<% $j %>" <% $judet eq $j ? 'selected' : '' %>><% $j %></option>
 % }
-      </div>
+            </select>
+          </div>
 
-      <!-- Pagination -->
-      <div class="pagination">
-        <a href="#" class="page-link">1</a>
-        <a href="#" class="page-link active">2</a>
-        <a href="#" class="page-link">3</a>
-        <a href="#" class="page-link">4</a>
-        <a href="#" class="page-link">5</a>
-        <span class="page-dots">...</span>
-        <a href="#" class="page-link">»</a>
-        <a href="#" class="page-link">»»</a>
-      </div>
+          <!-- Domeniu -->
+          <div class="filter-group">
+            <label>Domeniu</label>
+            <select name="domeniu">
+              <option value="">Toate domeniile</option>
+% foreach my $d (@$domenii) {
+              <option value="<% $d %>" <% $domeniu eq $d ? 'selected' : '' %>><% $d %></option>
+% }
+            </select>
+          </div>
+
+          <!-- Subdomeniu -->
+          <div class="filter-group">
+            <label>Subdomeniu</label>
+            <select name="subdomeniu">
+              <option value="">Toate subdomeniile</option>
+% foreach my $sd (@$subdomenii) {
+              <option value="<% $sd %>" <% $subdomeniu eq $sd ? 'selected' : '' %>><% $sd %></option>
+% }
+            </select>
+          </div>
+
+          <!-- Dimensiune -->
+          <div class="filter-group">
+            <label>Dimensiune</label>
+            <select name="dimensiune">
+              <option value="">Toate dimensiunile</option>
+              <option value="Mic" <% $dimensiune eq 'Mic' ? 'selected' : '' %>>Mic</option>
+              <option value="Mediu" <% $dimensiune eq 'Mediu' ? 'selected' : '' %>>Mediu</option>
+              <option value="Mare" <% $dimensiune eq 'Mare' ? 'selected' : '' %>>Mare</option>
+            </select>
+          </div>
+
+          <!-- Stadiu -->
+          <div class="filter-group">
+            <label>Stadiu</label>
+            <select name="stadiu">
+              <option value="">Toate stadiile</option>
+% foreach my $st (@$stadii) {
+              <option value="<% $st %>" <% $stadiu eq $st ? 'selected' : '' %>><% $st %></option>
+% }
+            </select>
+          </div>
+
+          <!-- Sector -->
+          <div class="filter-group">
+            <label>Sector</label>
+            <select name="sector">
+              <option value="">Toate sectoarele</option>
+              <option value="Public" <% $sector eq 'Public' ? 'selected' : '' %>>Public</option>
+              <option value="Privat" <% $sector eq 'Privat' ? 'selected' : '' %>>Privat</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn-primary btn-block">Aplica filtre</button>
+        </form>
+      </aside>
+
+      <!-- Results -->
+      <div class="projects-content">
+        <div class="projects-results-header">
+          <div>
+            <h2>Lista Santiere</h2>
+            <span class="results-count"><% $total_count %> santiere gasite</span>
+          </div>
+          <div class="sort-dropdown">
+            <label>Sorteaza:</label>
+            <select id="sortSelect" onchange="applySort(this.value)">
+              <option value="created_at_desc" <% $sort eq 'created_at_desc' ? 'selected' : '' %>>Cele mai recente</option>
+              <option value="created_at_asc" <% $sort eq 'created_at_asc' ? 'selected' : '' %>>Cele mai vechi</option>
+              <option value="valoare_desc" <% $sort eq 'valoare_desc' ? 'selected' : '' %>>Valoare descrescator</option>
+              <option value="valoare_asc" <% $sort eq 'valoare_asc' ? 'selected' : '' %>>Valoare crescator</option>
+              <option value="titlu_asc" <% $sort eq 'titlu_asc' ? 'selected' : '' %>>Titlu A-Z</option>
+              <option value="titlu_desc" <% $sort eq 'titlu_desc' ? 'selected' : '' %>>Titlu Z-A</option>
+            </select>
+          </div>
+        </div>
+
+% if (@santiere) {
+        <div class="projects-grid">
+% foreach my $santier (@santiere) {
+          <div class="project-card">
+            <div class="project-header">
+              <h3><% $santier->{titlu} %></h3>
+              <span class="project-id">#<% $santier->{id} %></span>
+            </div>
+            <div class="project-meta">
+              <span class="meta-item"><strong>Judet:</strong> <% $santier->{judet} %></span>
+              <span class="meta-item"><strong>Valoare:</strong> <% $santier->{valoare} || 'N/A' %></span>
+            </div>
+            <div class="project-details">
+              <p><strong>Domeniu:</strong> <% $santier->{domeniu} || 'N/A' %> - <% $santier->{subdomeniu} || '' %></p>
+              <p><strong>Stadiu:</strong> <% $santier->{stadiu} || 'N/A' %></p>
+              <p><strong>Dimensiune:</strong> <% $santier->{dimensiune} %> | <strong>Sector:</strong> <% $santier->{sector} %></p>
+            </div>
+% if ($santier->{solicitari}) {
+            <div class="project-requests">
+              <strong>Solicitari:</strong> <% $santier->{solicitari} %>
+            </div>
+% }
+            <div class="project-footer">
+              <span class="project-date"><% format_date_ro($santier->{created_at}) %></span>
+              <button class="btn-view-details" onclick="openSantierModal(<% $santier->{id} %>)">Vezi detalii</button>
+            </div>
+          </div>
+% }
+        </div>
 % } else {
-      <div class="no-results">
-        <h3>No projects found</h3>
-        <p>Try adjusting your filters to see more results.</p>
-      </div>
+        <div class="no-results">
+          <h3>Nu am gasit santiere</h3>
+          <p>Incerca sa modifici filtrele sau criteriile de cautare</p>
+        </div>
 % }
-    </div>
-    
-    <div class="projects-map-column">
-      <div id="projectsMap" class="projects-map"></div>
-    </div>
-  </div>
-</div>
-
-<% $m->comp('/includes/footer.html') %>
-
-<script>
-mapboxgl.accessToken = 'pk.eyJ1IjoiYWRlYmJpc2kiLCJhIjoiY21sMW13OWQwMDV0ejNkc2UxdzF5NDF5MCJ9.lm68dxyBNwpoectHgVFrMg';
-const map = new mapboxgl.Map({
-  container: 'projectsMap',
-  style: 'mapbox://styles/mapbox/streets-v12',
-  center: [25.0, 45.9], // Romania center
-  zoom: 6
-});
-
-// Add markers for projects
-const projectLocations = [
-  { coords: [21.23, 45.75], title: 'Water Network Rehabilitation', county: 'TIMIS' },
-  { coords: [23.58, 46.07], title: 'Residential Building', county: 'ALBA' },
-  { coords: [21.23, 45.76], title: 'XCity Towers', county: 'TIMIS' },
-  { coords: [26.10, 44.43], title: 'Sisesti Complex', county: 'ILFOV' },
-  { coords: [26.10, 44.43], title: 'Timpuri Noi Offices', county: 'BUCHAREST' },
-  { coords: [26.25, 47.65], title: 'Residential Home', county: 'SUCEAVA' },
-  { coords: [25.45, 44.93], title: 'Dental Clinic', county: 'DAMBOVITA' },
-  { coords: [24.37, 45.10], title: 'Recovery Center', county: 'VALCEA' },
-  { coords: [25.33, 43.98], title: 'Driving School', county: 'TELEORMAN' },
-  { coords: [26.15, 44.50], title: 'Residential Building', county: 'ILFOV' }
-];
-
-projectLocations.forEach(project => {
-  const popup = new mapboxgl.Popup({ offset: 25 })
-    .setHTML(`<div style="color: #333;"><h4 style="margin: 0 0 5px 0; font-size: 14px;">${project.title}</h4><p style="margin: 0; font-size: 12px; color: #666;">${project.county}</p></div>`);
-
-  new mapboxgl.Marker({ color: '#f59e0b' })
-    .setLngLat(project.coords)
-    .setPopup(popup)
-    .addTo(map);
-});
-</script>
-
-<!-- Project Details Modal -->
-<div id="projectModal" class="project-modal">
-  <div class="modal-overlay" onclick="closeProjectModal()"></div>
-  <div class="modal-content">
-    <button class="modal-close" onclick="closeProjectModal()">&times;</button>
-    <div class="modal-header">
-      <h2 id="modalTitle"></h2>
-      <span id="modalId" class="project-id"></span>
-    </div>
-    <div class="modal-body">
-      <div class="modal-section">
-        <h3>Project Information</h3>
-        <div class="modal-info-grid">
-          <div class="modal-info-item">
-            <span class="modal-label">County:</span>
-            <span id="modalCounty"></span>
-          </div>
-          <div class="modal-info-item">
-            <span class="modal-label">Status:</span>
-            <span id="modalStatus" class="status-badge"></span>
-          </div>
-          <div class="modal-info-item">
-            <span class="modal-label">Size/Value:</span>
-            <span id="modalValue"></span>
-          </div>
-          <div class="modal-info-item">
-            <span class="modal-label">Size:</span>
-            <span id="modalSize" class="size-badge"></span>
-          </div>
-        </div>
       </div>
 
-      <div class="modal-section">
-        <h3>Requirements</h3>
-        <p id="modalRequests" class="modal-requests"></p>
-      </div>
-
-      <div class="modal-section">
-        <h3>Project Details</h3>
-        <div class="modal-info-grid">
-          <div class="modal-info-item">
-            <span class="modal-label">Beneficiary:</span>
-            <span id="modalBeneficiary"></span>
-          </div>
-          <div class="modal-info-item">
-            <span class="modal-label">Designer:</span>
-            <span id="modalDesigner"></span>
-          </div>
-          <div class="modal-info-item">
-            <span class="modal-label">Contractor:</span>
-            <span id="modalContractor"></span>
-          </div>
-          <div class="modal-info-item">
-            <span class="modal-label">Date:</span>
-            <span id="modalDate"></span>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-actions">
-        <button class="btn-primary">Contact About This Project</button>
-        <button class="btn-secondary" onclick="closeProjectModal()">Close</button>
+      <!-- Map Column -->
+      <div class="map-column">
+        <div id="map" class="projects-map"></div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Santier Modal -->
+<div id="santierModal" class="santier-modal">
+  <div class="santier-modal-overlay" onclick="closeSantierModal()"></div>
+  <div class="santier-modal-dialog">
+    <button class="santier-modal-close" onclick="closeSantierModal()">&times;</button>
+    <div id="santierModalContent" class="santier-modal-body">
+      <div class="loading">Se incarca...</div>
+    </div>
+  </div>
+</div>
+
 <script>
-function openProjectModal(id, title, county, status, value, size, requests, beneficiary, designer, contractor, date) {
-  document.getElementById('modalId').textContent = 'ID: ' + id;
-  document.getElementById('modalTitle').textContent = title;
-  document.getElementById('modalCounty').textContent = county;
-  document.getElementById('modalStatus').textContent = status;
-  document.getElementById('modalValue').textContent = value;
-  document.getElementById('modalSize').textContent = size;
-  document.getElementById('modalRequests').textContent = requests;
-  document.getElementById('modalBeneficiary').textContent = beneficiary;
-  document.getElementById('modalDesigner').textContent = designer;
-  document.getElementById('modalContractor').textContent = contractor;
-  document.getElementById('modalDate').textContent = date;
+function openSantierModal(id) {
+  const modal = document.getElementById('santierModal');
+  const content = document.getElementById('santierModalContent');
   
-  document.getElementById('projectModal').classList.add('active');
+  modal.classList.add('active');
   document.body.style.overflow = 'hidden';
+  
+  content.innerHTML = '<div class="loading">Se incarca...</div>';
+  
+  fetch('/projects/view_ajax.html?id=' + id)
+    .then(response => response.text())
+    .then(html => {
+      content.innerHTML = html;
+    })
+    .catch(error => {
+      content.innerHTML = '<div class="error">Eroare la incarcarea datelor</div>';
+    });
 }
 
-function closeProjectModal() {
-  document.getElementById('projectModal').classList.remove('active');
+function closeSantierModal() {
+  const modal = document.getElementById('santierModal');
+  modal.classList.remove('active');
   document.body.style.overflow = '';
 }
 
-// Close modal with Escape key
+// Close modal on ESC key
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    closeProjectModal();
+    closeSantierModal();
   }
 });
+
+// Initialize Leaflet map
+const map = L.map('map').setView([45.9, 25.0], 6);
+
+// Add OpenStreetMap tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19
+}).addTo(map);
+
+// Romania county coordinates (approximate centers)
+const countyCoords = {
+  'ALBA': [46.0667, 23.5833],
+  'ARAD': [46.1667, 21.3167],
+  'ARGES': [44.8667, 24.8667],
+  'BACAU': [46.5667, 26.9167],
+  'BIHOR': [47.0667, 22.1],
+  'BISTRITA-NASAUD': [47.1333, 24.5],
+  'BOTOSANI': [47.75, 26.6667],
+  'BRASOV': [45.6667, 25.6],
+  'BRAILA': [45.2667, 27.9667],
+  'BUCURESTI': [44.4268, 26.1025],
+  'BUZAU': [45.15, 26.8333],
+  'CALARASI': [44.2, 27.3333],
+  'CARAS-SEVERIN': [45.3, 22.25],
+  'CLUJ': [46.7667, 23.6],
+  'CONSTANTA': [44.1667, 28.65],
+  'COVASNA': [45.8667, 25.7833],
+  'DAMBOVITA': [44.9333, 25.45],
+  'DOLJ': [44.3167, 23.8],
+  'GALATI': [45.4333, 27.9833],
+  'GIURGIU': [43.9, 25.97],
+  'GORJ': [45.05, 23.2833],
+  'HARGHITA': [46.35, 25.8],
+  'HUNEDOARA': [45.75, 22.9],
+  'IALOMITA': [44.5667, 27.3667],
+  'IASI': [47.1667, 27.6],
+  'ILFOV': [44.5667, 26.1333],
+  'MARAMURES': [47.6667, 23.5833],
+  'MEHEDINTI': [44.6333, 22.6667],
+  'MURES': [46.55, 24.5667],
+  'NEAMT': [46.9333, 26.3667],
+  'OLT': [44.4333, 24.3667],
+  'PRAHOVA': [45.1, 26.0167],
+  'SALAJ': [47.1833, 23.05],
+  'SATU MARE': [47.8, 22.8833],
+  'SIBIU': [45.8, 24.15],
+  'SUCEAVA': [47.6333, 25.9167],
+  'TELEORMAN': [43.9833, 25.3333],
+  'TIMIS': [45.75, 21.2333],
+  'TULCEA': [45.1667, 28.8],
+  'VALCEA': [45.1, 24.3667],
+  'VASLUI': [46.6333, 27.7333],
+  'VRANCEA': [45.7, 27.1833]
+};
+
+// Add markers for santiere
+% foreach my $santier (@santiere) {
+%   if ($santier->{judet}) {
+<%perl>
+my $judet_upper = uc($santier->{judet});
+</%perl>
+(function() {
+  const coords = countyCoords['<% $judet_upper %>'];
+  if (coords) {
+    const marker = L.marker(coords).addTo(map);
+    marker.bindPopup(`
+      <div style="min-width: 200px;">
+        <h4 style="margin: 0 0 8px 0; font-size: 14px;"><% $santier->{titlu} %></h4>
+        <p style="margin: 4px 0; font-size: 12px;"><strong>Judet:</strong> <% $santier->{judet} %></p>
+        <p style="margin: 4px 0; font-size: 12px;"><strong>Valoare:</strong> <% $santier->{valoare} || 'N/A' %></p>
+        <p style="margin: 4px 0; font-size: 12px;"><strong>Domeniu:</strong> <% $santier->{domeniu} || 'N/A' %></p>
+        <button onclick="openSantierModal(<% $santier->{id} %>)" style="display: inline-block; margin-top: 8px; padding: 4px 12px; background: #f59e0b; color: white; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">Vezi detalii</button>
+      </div>
+    `);
+  }
+})();
+%   }
+% }
+
+function applySort(sortValue) {
+  const url = new URL(window.location.href);
+  url.searchParams.set('sort', sortValue);
+  window.location.href = url.toString();
+}
 </script>
 
+<% $m->comp('/includes/footer.html') %>
 </body>
 </html>

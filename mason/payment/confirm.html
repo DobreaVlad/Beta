@@ -1,6 +1,6 @@
 <%init>
 use lib '/var/www/html/lib';
-use AppLib qw(get_user_by_session dbh);
+use AppLib qw(get_user_by_session dbh get_stripe_session update_payment_status);
 use CGI qw(cookie);
 
 my $q = CGI->new;
@@ -13,8 +13,30 @@ my $payment_status = $q->param('status') || '';
 
 my $message = '';
 my $success = 0;
+my $pending = 0;
 
 if ($session_id) {
+    # First, get the real-time status from Stripe
+    my $stripe_session = get_stripe_session($session_id);
+    
+    if ($stripe_session) {
+        my $stripe_payment_status = $stripe_session->{payment_status} || '';
+        
+        # Update our database if payment is completed
+        if ($stripe_payment_status eq 'paid') {
+            eval {
+                use JSON;
+                update_payment_status($session_id, 'completed', encode_json($stripe_session), undef);
+            };
+        } elsif ($stripe_payment_status eq 'unpaid') {
+            eval {
+                use JSON;
+                update_payment_status($session_id, 'failed', encode_json($stripe_session), 'Payment not completed');
+            };
+        }
+    }
+    
+    # Now check our database for the current status
     my $dbh = AppLib::dbh();
     my $sth = $dbh->prepare('
         SELECT p.*, s.plan_type, s.status as sub_status
@@ -30,6 +52,7 @@ if ($session_id) {
             $success = 1;
             $message = 'Your payment has been successfully processed!';
         } elsif ($payment->{status} eq 'pending') {
+            $pending = 1;
             $message = 'Your payment is being processed. We will notify you once it is confirmed.';
         } else {
             $message = 'Payment failed. Please try again or contact support.';
@@ -115,7 +138,7 @@ if ($session_id) {
 % if ($success) {
   <div class="confirmation-icon success-icon">✓</div>
   <h1>Payment Successful!</h1>
-% } elsif ($payment_status eq 'pending' || $message =~ /processing/) {
+% } elsif ($pending) {
   <div class="confirmation-icon pending-icon">⏳</div>
   <h1>Payment Processing</h1>
 % } else {

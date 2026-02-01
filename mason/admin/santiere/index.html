@@ -1,0 +1,229 @@
+<%init>
+use lib '/var/www/html/lib';
+use AppLib qw(get_user_by_session dbh format_date_ro);
+use CGI qw(cookie);
+
+my $q = CGI->new;
+my $session_cookie = $q->cookie('SESSION') || '';
+my $user = get_user_by_session($session_cookie);
+
+if (!$user || !$user->{is_admin}) {
+  print $q->redirect('/');
+  $m->abort();
+}
+
+my $search = $q->param('search') || '';
+my $judet = $q->param('judet') || '';
+my $domeniu = $q->param('domeniu') || '';
+my $sort = $q->param('sort') || 'created_at';
+my $order = $q->param('order') || 'DESC';
+
+my @santiere = ();
+my $total = 0;
+
+my $dbh = dbh();
+eval {
+    my @conditions;
+    my @params;
+    
+    if ($search) {
+        push @conditions, "(titlu LIKE ? OR descriere LIKE ?)";
+        push @params, "%$search%", "%$search%";
+    }
+    if ($judet) {
+        push @conditions, "judet = ?";
+        push @params, $judet;
+    }
+    if ($domeniu) {
+        push @conditions, "domeniu = ?";
+        push @params, $domeniu;
+    }
+    
+    my $where = @conditions ? "WHERE " . join(' AND ', @conditions) : '';
+    
+    my $count_sql = "SELECT COUNT(*) FROM santiere $where";
+    my $count_sth = $dbh->prepare($count_sql);
+    $count_sth->execute(@params);
+    ($total) = $count_sth->fetchrow_array;
+    
+    # Validate sort column to prevent SQL injection
+    my %valid_sorts = (
+        'id' => 'id',
+        'titlu' => 'titlu',
+        'judet' => 'judet',
+        'valoare' => 'valoare',
+        'domeniu' => 'domeniu',
+        'dimensiune' => 'dimensiune',
+        'stadiu' => 'stadiu',
+        'created_at' => 'created_at'
+    );
+    my $sort_col = $valid_sorts{$sort} || 'created_at';
+    my $sort_order = ($order eq 'ASC') ? 'ASC' : 'DESC';
+    
+    my $sql = "SELECT * FROM santiere $where ORDER BY $sort_col $sort_order LIMIT 100";
+    my $sth = $dbh->prepare($sql);
+    $sth->execute(@params);
+    while (my $row = $sth->fetchrow_hashref) {
+        push @santiere, $row;
+    }
+};
+
+my $judete = $dbh->selectcol_arrayref("SELECT DISTINCT judet FROM santiere WHERE judet IS NOT NULL ORDER BY judet");
+my $domenii = $dbh->selectcol_arrayref("SELECT DISTINCT domeniu FROM santiere WHERE domeniu IS NOT NULL ORDER BY domeniu");
+
+# Build URLs for removing filters
+my $url_remove_search = "?";
+$url_remove_search .= "judet=$judet&" if $judet;
+$url_remove_search .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_search .= "sort=$sort&order=$order";
+
+my $url_remove_judet = "?";
+$url_remove_judet .= "search=$search&" if $search;
+$url_remove_judet .= "domeniu=$domeniu&" if $domeniu;
+$url_remove_judet .= "sort=$sort&order=$order";
+
+my $url_remove_domeniu = "?";
+$url_remove_domeniu .= "search=$search&" if $search;
+$url_remove_domeniu .= "judet=$judet&" if $judet;
+$url_remove_domeniu .= "sort=$sort&order=$order";
+</%init>
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Santiere</title>
+  <link rel="stylesheet" href="/public/css/styles.css">
+</head>
+<body>
+<% $m->comp('/includes/header.html', user => $user, current => 'admin') %>
+
+<div class="admin-page">
+  <div class="container">
+    <div class="admin-header">
+      <h1>Administrare Santiere</h1>
+      <a href="/admin/santiere/edit.html" class="btn-primary">+ Adauga Santier Nou</a>
+    </div>
+
+    <div class="admin-filters">
+      <form method="get" class="admin-search-form">
+        <input type="text" name="search" placeholder="Cauta santier..." value="<% $search %>" class="admin-search-input">
+        <select name="judet" class="admin-filter-select">
+          <option value="">Toate judetele</option>
+% foreach my $j (@$judete) {
+          <option value="<% $j %>" <% $judet eq $j ? 'selected' : '' %>><% $j %></option>
+% }
+        </select>
+        <select name="domeniu" class="admin-filter-select">
+          <option value="">Toate domeniile</option>
+% foreach my $d (@$domenii) {
+          <option value="<% $d %>" <% $domeniu eq $d ? 'selected' : '' %>><% $d %></option>
+% }
+        </select>
+        <button type="submit" class="btn-primary">Cauta</button>
+        <a href="/admin/santiere/" class="btn-secondary">Reset</a>
+      </form>
+    </div>
+
+    <div class="admin-stats">
+      <p>Total: <strong><% $total %></strong> santiere</p>
+    </div>
+
+<% "<!-- DEBUG: search='$search' judet='$judet' domeniu='$domeniu' -->" %>
+% if ($search || $judet || $domeniu) {
+<% "<!-- DEBUG: Showing filters -->" %>
+    <div class="active-filters">
+      <span class="filter-label">Filtre active:</span>
+%   if ($search) {
+      <span class="filter-tag">
+        Cautare: "<% $search %>"
+        <a href="<% $url_remove_search %>" class="filter-remove" title="Sterge filtru">×</a>
+      </span>
+%   }
+%   if ($judet) {
+      <span class="filter-tag">
+        Judet: <% $judet %>
+        <a href="<% $url_remove_judet %>" class="filter-remove" title="Sterge filtru">×</a>
+      </span>
+%   }
+%   if ($domeniu) {
+      <span class="filter-tag">
+        Domeniu: <% $domeniu %>
+        <a href="<% $url_remove_domeniu %>" class="filter-remove" title="Sterge filtru">×</a>
+      </span>
+%   }
+      <a href="?sort=<% $sort %>&order=<% $order %>" class="clear-all-filters">Sterge toate filtrele</a>
+    </div>
+% }
+
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=id&order=<% ($sort eq 'id' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">ID <% $sort eq 'id' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=titlu&order=<% ($sort eq 'titlu' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">Titlu <% $sort eq 'titlu' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=judet&order=<% ($sort eq 'judet' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">Judet <% $sort eq 'judet' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=valoare&order=<% ($sort eq 'valoare' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">Valoare <% $sort eq 'valoare' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=domeniu&order=<% ($sort eq 'domeniu' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">Domeniu <% $sort eq 'domeniu' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=dimensiune&order=<% ($sort eq 'dimensiune' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">Dimensiune <% $sort eq 'dimensiune' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=stadiu&order=<% ($sort eq 'stadiu' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">Stadiu <% $sort eq 'stadiu' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th><a href="?search=<% $search %>&judet=<% $judet %>&domeniu=<% $domeniu %>&sort=created_at&order=<% ($sort eq 'created_at' && $order eq 'DESC') ? 'ASC' : 'DESC' %>">Data Adaugare <% $sort eq 'created_at' ? ($order eq 'DESC' ? '↓' : '↑') : '' %></a></th>
+            <th>Actiuni</th>
+          </tr>
+        </thead>
+        <tbody>
+% if (@santiere) {
+%   foreach my $santier (@santiere) {
+          <tr>
+            <td><% $santier->{id} %></td>
+            <td><% $santier->{titlu} %></td>
+            <td><% $santier->{judet} || '-' %></td>
+            <td><% $santier->{valoare} || '-' %></td>
+            <td><% $santier->{domeniu} || '-' %></td>
+            <td><% $santier->{dimensiune} %></td>
+            <td><% $santier->{stadiu} || '-' %></td>
+            <td><% format_date_ro($santier->{created_at}) %></td>
+            <td class="admin-actions">
+              <a href="/admin/santiere/edit.html?id=<% $santier->{id} %>" class="btn-edit">Editeaza</a>
+              <button onclick="deleteSantier(<% $santier->{id} %>)" class="btn-delete">Sterge</button>
+            </td>
+          </tr>
+%   }
+% } else {
+          <tr>
+            <td colspan="9" class="no-results">Nu au fost gasite santiere</td>
+          </tr>
+% }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function deleteSantier(id) {
+  if (!confirm('Esti sigur ca vrei sa stergi acest santier?')) {
+    return;
+  }
+  
+  fetch('/admin/santiere/delete.html?id=' + id, {
+    method: 'POST'
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Santier sters cu succes');
+      window.location.reload();
+    } else {
+      alert('Eroare: ' + (data.error || 'Nu s-a putut sterge santierul'));
+    }
+  })
+  .catch(error => {
+    alert('Eroare la stergere: ' + error);
+  });
+}
+</script>
+
+<% $m->comp('/includes/footer.html') %>
+</body>
+</html>

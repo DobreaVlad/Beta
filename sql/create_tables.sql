@@ -1,13 +1,15 @@
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  name VARCHAR(50) UNIQUE NOT NULL,
+  name VARCHAR(50) NOT NULL,
   email VARCHAR(100) UNIQUE NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
-  salt VARCHAR(255) NOT NULL,
+  password_hash VARCHAR(255),
+  salt VARCHAR(255),
+  google_id VARCHAR(255),
   is_admin TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_name (name),
-  INDEX idx_email (email)
+  INDEX idx_email (email),
+  INDEX idx_google_id (google_id)
 );
 
 CREATE TABLE IF NOT EXISTS sessions (
@@ -31,22 +33,49 @@ CREATE TABLE IF NOT EXISTS password_resets (
   INDEX idx_token (token)
 );
 
-CREATE TABLE IF NOT EXISTS properties (
+CREATE TABLE IF NOT EXISTS santiere (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  address VARCHAR(255) NOT NULL,
-  city VARCHAR(100) NOT NULL,
-  state VARCHAR(50) NOT NULL,
-  zip_code VARCHAR(20) NOT NULL,
-  price DECIMAL(12,2),
-  bedrooms INT,
-  bathrooms DECIMAL(3,1),
-  square_feet INT,
-  description TEXT,
+  titlu VARCHAR(255) NOT NULL,
+  judet VARCHAR(100) NOT NULL,
+  adresa TEXT,
+  valoare VARCHAR(255),
+  domeniu VARCHAR(100),
+  subdomeniu VARCHAR(100),
+  descriere TEXT,
+  solicitari TEXT,
+  observatii TEXT,
+  dimensiune ENUM('Mic', 'Mediu', 'Mare') DEFAULT 'Mediu',
+  sector ENUM('Public', 'Privat') DEFAULT 'Public',
+  stadiu VARCHAR(100),
+  
+  -- Date de contact Beneficiar
+  beneficiar_nume VARCHAR(255),
+  beneficiar_persoana VARCHAR(255),
+  beneficiar_contact VARCHAR(255),
+  beneficiar_email VARCHAR(255),
+  
+  -- Date de contact Antreprenor
+  antreprenor_nume VARCHAR(255),
+  antreprenor_persoana VARCHAR(255),
+  antreprenor_contact VARCHAR(255),
+  antreprenor_email VARCHAR(255),
+  
+  -- Date de contact Proiectant
+  proiectant_nume VARCHAR(255),
+  proiectant_persoana VARCHAR(255),
+  proiectant_contact VARCHAR(255),
+  proiectant_email VARCHAR(255),
+  
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_city (city),
-  INDEX idx_zip (zip_code),
-  INDEX idx_price (price)
+  
+  INDEX idx_judet (judet),
+  INDEX idx_domeniu (domeniu),
+  INDEX idx_subdomeniu (subdomeniu),
+  INDEX idx_dimensiune (dimensiune),
+  INDEX idx_stadiu (stadiu),
+  INDEX idx_created_at (created_at),
+  FULLTEXT idx_search (titlu, descriere, solicitari)
 );
 
 CREATE TABLE IF NOT EXISTS subscriptions (

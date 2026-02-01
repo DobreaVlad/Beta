@@ -37,14 +37,14 @@ if ($q->request_method eq 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - PropertySite</title>
+  <title>Autentificare - DateSantiere</title>
   <link rel="stylesheet" href="/public/css/styles.css">
 </head>
 <body>
 <% $m->comp('/includes/header.html', user => undef, current => 'login') %>
 
 <div class="auth-container">
-  <h1>Login to Your Account</h1>
+  <h1>Autentificare cont</h1>
 % if ($error) {
   <div class="error"><% $error %></div>
 % }
@@ -54,14 +54,14 @@ if ($q->request_method eq 'POST') {
       <input type="email" id="email" name="email" required>
     </div>
     <div class="form-group">
-      <label for="password">Password</label>
+      <label for="password">Parola</label>
       <input type="password" id="password" name="password" required>
     </div>
-    <button type="submit">Login</button>
+    <button type="submit">Autentificare</button>
   </form>
   <div class="form-footer">
-    <p>Don't have an account? <a href="/auth/register.html">Register here</a></p>
-    <p><a href="/auth/reset_request.html">Forgot your password?</a></p>
+    <p>Nu ai cont? <a href="/auth/register.html">Inregistreaza-te aici</a></p>
+    <p><a href="/auth/reset_request.html">Ai uitat parola?</a></p>
   </div>
 </div>
 

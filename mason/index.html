@@ -12,7 +12,7 @@ my $user = get_user_by_session($session_cookie);
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PropertySite - Find Your Dream Property</title>
+  <title>DateSantiere - Gaseste santierele tale</title>
   <link rel="stylesheet" href="/public/css/styles.css">
 </head>
 <body>
@@ -20,38 +20,59 @@ my $user = get_user_by_session($session_cookie);
 
 <section class="hero">
   <div class="container">
-    <h1>Find Your Dream Property</h1>
-    <p class="hero-subtitle">Search millions of properties and discover detailed information</p>
-    <form method="get" action="/search/" class="search-box">
-      <input type="text" name="q" placeholder="Enter address, city, or ZIP code" class="search-input" required>
-      <button type="submit" class="btn-primary">Search Properties</button>
+    <h1>Gaseste santierele tale</h1>
+    <p class="hero-subtitle">Cauta mii de santiere si proiecte din toata tara</p>
+    
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🏗️</div>
+        <div class="stat-number">109,582</div>
+        <div class="stat-label">Total santiere</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📅</div>
+        <div class="stat-number">549</div>
+        <div class="stat-label">Santiere in ultima luna</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱️</div>
+        <div class="stat-number">182</div>
+        <div class="stat-label">Santiere din ultima saptamana</div>
+      </div>
+    </div>
+    
+    <form method="get" action="/projects/" class="search-box">
+      <input type="text" name="search" placeholder="Introdu adresa, oras sau judet" class="search-input">
+      <button type="submit" class="btn-primary">Cauta Santiere</button>
     </form>
+    
+    <button onclick="authModal.open('register')" class="btn-primary btn-large" style="margin-top: 20px; border: none; cursor: pointer;">Testeaza gratuit</button>
   </div>
 </section>
 
 <section class="features">
   <div class="container">
-    <h2>Why Choose PropertySite?</h2>
+    <h2>De ce DateSantiere?</h2>
     <div class="feature-grid">
       <div class="feature-card">
-        <div class="feature-icon">🏠</div>
-        <h3>Comprehensive Database</h3>
-        <p>Access millions of property records with detailed information</p>
+        <div class="feature-icon">🏗️</div>
+        <h3>Baza de date completa</h3>
+        <p>Acces la mii de santiere cu informatii detaliate</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📊</div>
-        <h3>Market Analytics</h3>
-        <p>Get insights into property values and market trends</p>
+        <h3>Analiza pietei</h3>
+        <p>Informatii despre evolutia proiectelor si tendinte</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔒</div>
-        <h3>Secure & Private</h3>
-        <p>Your data is protected with enterprise-grade security</p>
+        <h3>Sigur & Privat</h3>
+        <p>Datele tale sunt protejate cu securitate de nivel enterprise</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
-        <h3>Fast & Accurate</h3>
-        <p>Real-time updates and accurate property information</p>
+        <h3>Rapid & Precis</h3>
+        <p>Actualizari in timp real si informatii precise despre santiere</p>
       </div>
     </div>
   </div>
@@ -59,12 +80,12 @@ my $user = get_user_by_session($session_cookie);
 
 <section class="cta">
   <div class="container">
-    <h2>Ready to Get Started?</h2>
-    <p>Join thousands of users who trust PropertySite for their property research</p>
+    <h2>Gata sa incepi?</h2>
+    <p>Alatura-te miilor de utilizatori care au incredere in DateSantiere</p>
 % if (!$user) {
-  <a href="/auth/register.html" class="btn-primary btn-large">Create Free Account</a>
+  <button onclick="authModal.open('register')" class="btn-primary btn-large" style="border: none; cursor: pointer;">Creeaza cont gratuit</button>
 % } else {
-  <a href="/profile/" class="btn-primary btn-large">Go to Profile</a>
+  <a href="/profile/" class="btn-primary btn-large">Mergi la Profil</a>
 % }
   </div>
 </section>
