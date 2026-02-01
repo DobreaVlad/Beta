@@ -1,11 +1,23 @@
 services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS:-root}
+      MYSQL_DATABASE: ${DB_NAME:-beta}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+
   web:
     build: .
+    depends_on:
+      - db
     environment:
-      DB_HOST: ${DB_HOST}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASS: ${DB_PASS}
+      DB_HOST: db
+      DB_NAME: ${DB_NAME:-beta}
+      DB_USER: ${DB_USER:-root}
+      DB_PASS: ${DB_PASS:-root}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_FROM: ${SMTP_FROM}
@@ -17,3 +29,19 @@ services:
       APP_BASE_URL: ${APP_BASE_URL}
     ports:
       - "${PORT:-80}:80"
+
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+
+volumes:
+  mysql-data:

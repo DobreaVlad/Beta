@@ -28,7 +28,7 @@ DB_PORT=${DB_PORT:-3306}
 RETRY_COUNT=0
 MAX_RETRIES=30
 
-until mysqladmin ping --protocol=TCP -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" --silent 2>/dev/null; do
+until mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" -e "SELECT 1" &>/dev/null; do
     RETRY_COUNT=$((RETRY_COUNT+1))
     if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
         echo "ERROR: MySQL is not available after $MAX_RETRIES attempts"
@@ -45,12 +45,12 @@ done
 echo "MySQL is up - checking database..."
 
 # Check if database exists and has tables
-TABLE_COUNT=$(mysql --protocol=TCP -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "SHOW TABLES;" 2>/dev/null | wc -l)
+TABLE_COUNT=$(mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" -e "SHOW TABLES;" 2>/dev/null | wc -l)
 
 if [ "$TABLE_COUNT" -lt 2 ]; then
     echo "Database appears empty, initializing tables..."
     if [ -f /var/www/html/sql/create_tables.sql ]; then
-        mysql --protocol=TCP -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < /var/www/html/sql/create_tables.sql
+        mysql -h"$DB_HOST" -P"$DB_PORT" -u"$DB_USER" -p"$DB_PASS" "$DB_NAME" < /var/www/html/sql/create_tables.sql
         echo "Database tables created successfully!"
     else
         echo "WARNING: create_tables.sql not found, skipping database initialization"
